@@ -5,6 +5,9 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  IsInt,
+  IsPositive,
+  IsBoolean,
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -33,6 +36,20 @@ export class CreateUserDto {
   @MinLength(1)
   @MaxLength(100)
   lastName: string;
+
+  @IsInt()
+  @IsPositive()
+  @IsNotEmpty()
+  operatorId: number;
+
+  @IsInt()
+  @IsPositive()
+  @IsNotEmpty()
+  roleId: number;
+
+  @IsBoolean()
+  @IsOptional()
+  status?: boolean;
 }
 
 export class UpdateUserDto {
@@ -51,4 +68,13 @@ export class UpdateUserDto {
   @MinLength(1)
   @MaxLength(100)
   lastName?: string;
+
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  roleId?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  status?: boolean;
 }

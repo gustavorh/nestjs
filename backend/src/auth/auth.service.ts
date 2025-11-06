@@ -3,7 +3,29 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { RegisterDto, AuthResponseDto } from './dto/auth.dto';
-import { User } from '../database/schema';
+
+export interface UserWithRelations {
+  id: number;
+  username: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  operatorId: number;
+  roleId: number;
+  createdAt: Date;
+  updatedAt: Date;
+  operator: {
+    id: number;
+    name: string;
+    super: boolean;
+    status: boolean;
+  } | null;
+  role: {
+    id: number;
+    name: string;
+  } | null;
+}
 
 @Injectable()
 export class AuthService {
@@ -32,16 +54,18 @@ export class AuthService {
     // Hash password
     const hashedPassword = await this.hashPassword(registerDto.password);
 
-    // Create user
+    // Create user with operator and role
     const newUser = await this.usersService.create({
       username: registerDto.username,
       email: registerDto.email,
       password: hashedPassword,
       firstName: registerDto.firstName,
       lastName: registerDto.lastName,
+      operatorId: registerDto.operatorId,
+      roleId: registerDto.roleId,
     });
 
-    // Generate JWT token
+    // Generate JWT token with operator context
     const token = this.generateToken(newUser);
 
     return {
@@ -52,14 +76,31 @@ export class AuthService {
         email: newUser.email,
         firstName: newUser.firstName,
         lastName: newUser.lastName,
+        operatorId: newUser.operatorId,
+        roleId: newUser.roleId,
+        operator: newUser.operator || undefined,
+        role: newUser.role || undefined,
       },
     };
   }
 
-  async validateUser(username: string, password: string): Promise<User | null> {
+  async validateUser(
+    username: string,
+    password: string,
+  ): Promise<UserWithRelations | null> {
     const user = await this.usersService.findByUsername(username);
 
     if (!user) {
+      return null;
+    }
+
+    // Check if user account is active
+    if ('status' in user && !user.status) {
+      return null;
+    }
+
+    // Check if operator is active
+    if (user.operator && !user.operator.status) {
       return null;
     }
 
@@ -75,7 +116,7 @@ export class AuthService {
     return user;
   }
 
-  login(user: User): AuthResponseDto {
+  login(user: UserWithRelations): AuthResponseDto {
     const token = this.generateToken(user);
 
     return {
@@ -86,6 +127,10 @@ export class AuthService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        operatorId: user.operatorId,
+        roleId: user.roleId,
+        operator: user.operator || undefined,
+        role: user.role || undefined,
       },
     };
   }
@@ -102,11 +147,14 @@ export class AuthService {
     return bcrypt.compare(plainPassword, hashedPassword);
   }
 
-  private generateToken(user: User): string {
+  private generateToken(user: UserWithRelations): string {
     const payload = {
       sub: user.id,
       username: user.username,
       email: user.email,
+      operatorId: user.operatorId,
+      roleId: user.roleId,
+      isSuper: user.operator?.super || false,
     };
 
     return this.jwtService.sign(payload);

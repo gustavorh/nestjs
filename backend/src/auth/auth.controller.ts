@@ -7,10 +7,9 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
+import { AuthService, UserWithRelations } from './auth.service';
 import { RegisterDto, AuthResponseDto } from './dto/auth.dto';
 import { LocalAuthGuard } from './guards/local-auth.guard';
-import { User } from '../database/schema';
 
 @Controller('auth')
 export class AuthController {
@@ -25,7 +24,7 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  login(@Request() req: { user: User }): AuthResponseDto {
+  login(@Request() req: { user: UserWithRelations }): AuthResponseDto {
     return this.authService.login(req.user);
   }
 }

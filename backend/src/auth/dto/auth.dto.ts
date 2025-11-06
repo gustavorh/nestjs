@@ -5,6 +5,8 @@ import {
   MinLength,
   MaxLength,
   Matches,
+  IsInt,
+  IsPositive,
 } from 'class-validator';
 
 export class RegisterDto {
@@ -42,6 +44,16 @@ export class RegisterDto {
   @MinLength(1)
   @MaxLength(100)
   lastName: string;
+
+  @IsInt()
+  @IsPositive()
+  @IsNotEmpty()
+  operatorId: number;
+
+  @IsInt()
+  @IsPositive()
+  @IsNotEmpty()
+  roleId: number;
 }
 
 export class LoginDto {
@@ -62,5 +74,16 @@ export class AuthResponseDto {
     email: string;
     firstName: string;
     lastName: string;
+    operatorId: number;
+    roleId: number;
+    operator?: {
+      id: number;
+      name: string;
+      super: boolean;
+    };
+    role?: {
+      id: number;
+      name: string;
+    };
   };
 }
