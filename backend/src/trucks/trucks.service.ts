@@ -92,9 +92,12 @@ export class TrucksService {
     query: TruckQueryDto,
   ): Promise<{
     data: TruckResponseDto[];
-    total: number;
-    page: number;
-    limit: number;
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
   }> {
     const {
       page = 1,
@@ -157,11 +160,17 @@ export class TrucksService {
       ),
     );
 
+    const total = Number(count);
+    const totalPages = Math.ceil(total / limit);
+
     return {
       data: enrichedVehicles,
-      total: Number(count),
-      page,
-      limit,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
     };
   }
 

@@ -5,7 +5,13 @@ interface SidebarProps {
   onNavigate: (path: string) => void;
 }
 
-export function DashboardSidebar({ currentPath, onNavigate }: SidebarProps) {
+export function DashboardSidebar({
+  currentPath = "/dashboard",
+  onNavigate,
+}: SidebarProps) {
+  const isActive = (path: string) => currentPath === path;
+  const isParentActive = (basePath: string) => currentPath.startsWith(basePath);
+
   return (
     <aside className="w-64 bg-[#23262f] p-6 flex flex-col">
       {/* Brand */}
@@ -26,7 +32,13 @@ export function DashboardSidebar({ currentPath, onNavigate }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 space-y-1">
         <div className="mb-4">
-          <button className="w-full flex items-center gap-2 px-3 py-2 text-slate-300 hover:bg-[#2a2d3a] rounded text-sm">
+          <button
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded text-sm ${
+              isActive("/dashboard")
+                ? "text-white bg-[#2a2d3a]"
+                : "text-slate-300 hover:bg-[#2a2d3a]"
+            }`}
+          >
             <svg
               className="w-4 h-4"
               fill="none"
@@ -58,26 +70,37 @@ export function DashboardSidebar({ currentPath, onNavigate }: SidebarProps) {
           <div className="ml-4 mt-1 space-y-1">
             <div
               onClick={() => onNavigate("/dashboard")}
-              className="px-3 py-2 text-xs text-white bg-[#2a2d3a] rounded cursor-pointer hover:bg-[#353845]"
+              className={`px-3 py-2 text-xs cursor-pointer rounded ${
+                isActive("/dashboard")
+                  ? "text-white bg-[#2a2d3a]"
+                  : "text-slate-400 hover:text-slate-300 hover:bg-[#353845]"
+              }`}
             >
               Vista en Tiempo Real
             </div>
             <div
               onClick={() => onNavigate("/dashboard")}
-              className="px-3 py-2 text-xs text-slate-400 hover:text-slate-300 cursor-pointer"
+              className="px-3 py-2 text-xs text-slate-400 hover:text-slate-300 cursor-pointer hover:bg-[#353845] rounded"
             >
               Programación de Traslados
             </div>
             <div
               onClick={() => onNavigate("/dashboard")}
-              className="px-3 py-2 text-xs text-slate-400 hover:text-slate-300 cursor-pointer"
+              className="px-3 py-2 text-xs text-slate-400 hover:text-slate-300 cursor-pointer hover:bg-[#353845] rounded"
             >
               Reportes Automáticos
             </div>
           </div>
         </div>
 
-        <button className="w-full flex items-center gap-2 px-3 py-2 text-slate-300 hover:bg-[#2a2d3a] rounded text-sm">
+        <button
+          onClick={() => onNavigate("/dashboard/trucks")}
+          className={`w-full flex items-center gap-2 px-3 py-2 rounded text-sm ${
+            isParentActive("/dashboard/trucks")
+              ? "text-white bg-[#2a2d3a]"
+              : "text-slate-300 hover:bg-[#2a2d3a]"
+          }`}
+        >
           <svg
             className="w-4 h-4"
             fill="none"
@@ -109,7 +132,11 @@ export function DashboardSidebar({ currentPath, onNavigate }: SidebarProps) {
 
         <button
           onClick={() => onNavigate("/dashboard/drivers")}
-          className="w-full flex items-center gap-2 px-3 py-2 text-slate-300 hover:bg-[#2a2d3a] rounded text-sm"
+          className={`w-full flex items-center gap-2 px-3 py-2 rounded text-sm ${
+            isParentActive("/dashboard/drivers")
+              ? "text-white bg-[#2a2d3a]"
+              : "text-slate-300 hover:bg-[#2a2d3a]"
+          }`}
         >
           <svg
             className="w-4 h-4"

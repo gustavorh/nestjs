@@ -587,3 +587,221 @@ export async function deleteOperation(
     }
   );
 }
+
+// ============================================================================
+// TRUCKS API
+// ============================================================================
+
+import type {
+  Truck,
+  CreateTruckInput,
+  UpdateTruckInput,
+  TruckQueryParams,
+  PaginatedTrucks,
+  TruckDocument,
+  CreateTruckDocumentInput,
+  UpdateTruckDocumentInput,
+  TruckOperation,
+  TruckStatistics,
+} from "@/types/trucks";
+
+/**
+ * Get all trucks with filtering and pagination
+ */
+export async function getTrucks(
+  token: string,
+  params?: TruckQueryParams
+): Promise<PaginatedTrucks> {
+  const queryParams = new URLSearchParams();
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, value.toString());
+      }
+    });
+  }
+  const queryString = queryParams.toString();
+  return authenticatedRequest<PaginatedTrucks>(
+    `/api/trucks${queryString ? `?${queryString}` : ""}`,
+    token
+  );
+}
+
+/**
+ * Get a single truck by ID
+ */
+export async function getTruckById(token: string, id: number): Promise<Truck> {
+  return authenticatedRequest<Truck>(`/api/trucks/${id}`, token);
+}
+
+/**
+ * Create a new truck
+ */
+export async function createTruck(
+  token: string,
+  data: CreateTruckInput
+): Promise<Truck> {
+  return authenticatedRequest<Truck>("/api/trucks", token, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Update an existing truck
+ */
+export async function updateTruck(
+  token: string,
+  id: number,
+  data: UpdateTruckInput
+): Promise<Truck> {
+  return authenticatedRequest<Truck>(`/api/trucks/${id}`, token, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Delete a truck
+ */
+export async function deleteTruck(
+  token: string,
+  id: number
+): Promise<{ message: string }> {
+  return authenticatedRequest<{ message: string }>(`/api/trucks/${id}`, token, {
+    method: "DELETE",
+  });
+}
+
+// ============================================================================
+// TRUCK DOCUMENTS API
+// ============================================================================
+
+/**
+ * Get all documents for a truck
+ */
+export async function getTruckDocuments(
+  token: string,
+  truckId: number
+): Promise<TruckDocument[]> {
+  return authenticatedRequest<TruckDocument[]>(
+    `/api/trucks/${truckId}/documents`,
+    token
+  );
+}
+
+/**
+ * Create a new truck document
+ */
+export async function createTruckDocument(
+  token: string,
+  data: CreateTruckDocumentInput
+): Promise<TruckDocument> {
+  return authenticatedRequest<TruckDocument>("/api/trucks/documents", token, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Update an existing truck document
+ */
+export async function updateTruckDocument(
+  token: string,
+  documentId: number,
+  data: UpdateTruckDocumentInput
+): Promise<TruckDocument> {
+  return authenticatedRequest<TruckDocument>(
+    `/api/trucks/documents/${documentId}`,
+    token,
+    {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }
+  );
+}
+
+/**
+ * Delete a truck document
+ */
+export async function deleteTruckDocument(
+  token: string,
+  documentId: number
+): Promise<{ message: string }> {
+  return authenticatedRequest<{ message: string }>(
+    `/api/trucks/documents/${documentId}`,
+    token,
+    {
+      method: "DELETE",
+    }
+  );
+}
+
+/**
+ * Get expiring documents
+ */
+export async function getExpiringDocuments(
+  token: string,
+  days: number = 30
+): Promise<TruckDocument[]> {
+  return authenticatedRequest<TruckDocument[]>(
+    `/api/trucks/documents/expiring?days=${days}`,
+    token
+  );
+}
+
+// ============================================================================
+// TRUCK OPERATIONS & HISTORY API
+// ============================================================================
+
+/**
+ * Get operational status of a truck
+ */
+export async function getTruckOperationalStatus(
+  token: string,
+  truckId: number
+): Promise<{ status: string; notes?: string }> {
+  return authenticatedRequest<{ status: string; notes?: string }>(
+    `/api/trucks/${truckId}/operational-status`,
+    token
+  );
+}
+
+/**
+ * Get operation history for a truck
+ */
+export async function getTruckOperationHistory(
+  token: string,
+  truckId: number,
+  limit: number = 10
+): Promise<TruckOperation[]> {
+  return authenticatedRequest<TruckOperation[]>(
+    `/api/trucks/${truckId}/operations/history?limit=${limit}`,
+    token
+  );
+}
+
+/**
+ * Get upcoming operations for a truck
+ */
+export async function getTruckUpcomingOperations(
+  token: string,
+  truckId: number
+): Promise<TruckOperation[]> {
+  return authenticatedRequest<TruckOperation[]>(
+    `/api/trucks/${truckId}/operations/upcoming`,
+    token
+  );
+}
+
+/**
+ * Get statistics overview for all trucks
+ */
+export async function getTrucksStatsOverview(
+  token: string
+): Promise<TruckStatistics> {
+  return authenticatedRequest<TruckStatistics>(
+    "/api/trucks/stats/overview",
+    token
+  );
+}

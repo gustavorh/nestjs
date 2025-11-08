@@ -22,7 +22,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "seed:permissions": "tsx src/database/seeds/run-seed.ts"
+    "seed": "tsx src/database/seeds/run-seed.ts",
+    "seed:no-sample": "tsx src/database/seeds/run-seed.ts --no-sample"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

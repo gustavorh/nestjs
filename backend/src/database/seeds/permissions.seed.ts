@@ -48,6 +48,26 @@ export async function seedPermissions(db: MySql2Database): Promise<void> {
       { resource: 'vehicles', action: 'update' },
       { resource: 'vehicles', action: 'delete' },
 
+      // Trucks management
+      { resource: 'trucks', action: 'create' },
+      { resource: 'trucks', action: 'read' },
+      { resource: 'trucks', action: 'update' },
+      { resource: 'trucks', action: 'delete' },
+      { resource: 'trucks:documents', action: 'create' },
+      { resource: 'trucks:documents', action: 'read' },
+      { resource: 'trucks:documents', action: 'update' },
+      { resource: 'trucks:documents', action: 'delete' },
+      { resource: 'trucks:status', action: 'read' },
+      { resource: 'trucks:status', action: 'update' },
+      { resource: 'trucks:operations', action: 'read' },
+      { resource: 'trucks:stats', action: 'read' },
+
+      // Operations management
+      { resource: 'operations', action: 'create' },
+      { resource: 'operations', action: 'read' },
+      { resource: 'operations', action: 'update' },
+      { resource: 'operations', action: 'delete' },
+
       // Reports
       { resource: 'reports', action: 'read' },
       { resource: 'reports', action: 'export' },
@@ -64,6 +84,12 @@ export async function seedPermissions(db: MySql2Database): Promise<void> {
       { resource: 'roles', action: 'read' },
       { resource: 'roles', action: 'update' },
       { resource: 'roles', action: 'delete' },
+
+      // Operators management
+      { resource: 'operators', action: 'create' },
+      { resource: 'operators', action: 'read' },
+      { resource: 'operators', action: 'update' },
+      { resource: 'operators', action: 'delete' },
     ];
 
     // Insert grants and collect their IDs
@@ -92,36 +118,41 @@ export async function seedPermissions(db: MySql2Database): Promise<void> {
     console.log(`✅ Created ${Object.keys(createdGrants).length} grants`);
 
     // ========================================================================
-    // 2. GET OR CREATE DEFAULT OPERATOR
+    // 2. CREATE DEFAULT OPERATOR (Bilix)
     // ========================================================================
     console.log('🏢 Setting up default operator...');
 
-    let defaultOperator = await db.select().from(operators).limit(1);
+    // Check if Bilix operator already exists
+    const defaultOperator = await db
+      .select()
+      .from(operators)
+      .where(eq(operators.rut, '12345678-9'))
+      .limit(1);
+
+    let operatorId: number;
 
     if (defaultOperator.length === 0) {
-      console.log('⚠️  No operator found. Creating default operator...');
+      console.log('Creating Bilix operator...');
       const [newOperator] = await db
         .insert(operators)
         .values({
-          name: 'Default Operator',
+          name: 'Bilix',
           rut: '12345678-9',
-          super: false,
+          super: true,
+          expiration: null,
           status: true,
+          createdBy: null, // System
         })
         .$returningId();
 
-      const [operator] = await db
-        .select()
-        .from(operators)
-        .where(eq(operators.id, newOperator.id));
-
-      defaultOperator = [operator];
+      operatorId = newOperator.id;
+      console.log(`✅ Created operator: Bilix (ID: ${operatorId})`);
+    } else {
+      operatorId = defaultOperator[0].id;
+      console.log(
+        `✅ Using existing operator: ${defaultOperator[0].name} (ID: ${operatorId})`,
+      );
     }
-
-    const operatorId = defaultOperator[0].id;
-    console.log(
-      `✅ Using operator: ${defaultOperator[0].name} (ID: ${operatorId})`,
-    );
 
     // ========================================================================
     // 3. CREATE PREDEFINED ROLES
