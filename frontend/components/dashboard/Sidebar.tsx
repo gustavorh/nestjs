@@ -122,9 +122,9 @@ export function DashboardSidebar({
                 Dashboard
               </div>
               <div
-                onClick={() => onNavigate("/dashboard/operations")}
+                onClick={() => onNavigate("/operations")}
                 className={`px-3 py-2 text-xs cursor-pointer rounded transition-colors ${
-                  isActive("/dashboard/operations")
+                  isActive("/operations")
                     ? "bg-primary/20 text-primary border-l-2 border-primary font-medium"
                     : "text-muted-foreground hover:text-foreground hover:bg-ui-surface-hover"
                 }`}
@@ -157,11 +157,11 @@ export function DashboardSidebar({
         </div>
 
         <button
-          onClick={() => onNavigate("/dashboard/trucks")}
+          onClick={() => onNavigate("/trucks")}
           className={`w-full flex items-center ${
             isCollapsed ? "justify-center" : "gap-2"
           } px-3 py-2 rounded text-sm transition-colors ${
-            isParentActive("/dashboard/trucks")
+            isParentActive("/trucks")
               ? "bg-primary text-primary-foreground font-medium"
               : "text-foreground hover:bg-ui-surface-elevated hover:text-foreground"
           }`}
@@ -201,11 +201,11 @@ export function DashboardSidebar({
         </button>
 
         <button
-          onClick={() => onNavigate("/dashboard/drivers")}
+          onClick={() => onNavigate("/drivers")}
           className={`w-full flex items-center ${
             isCollapsed ? "justify-center" : "gap-2"
           } px-3 py-2 rounded text-sm transition-colors ${
-            isParentActive("/dashboard/drivers")
+            isParentActive("/drivers")
               ? "bg-primary text-primary-foreground font-medium"
               : "text-foreground hover:bg-ui-surface-elevated hover:text-foreground"
           }`}
@@ -245,11 +245,11 @@ export function DashboardSidebar({
         </button>
 
         <button
-          onClick={() => onNavigate("/dashboard/clients")}
+          onClick={() => onNavigate("/clients")}
           className={`w-full flex items-center ${
             isCollapsed ? "justify-center" : "gap-2"
           } px-3 py-2 rounded text-sm transition-colors ${
-            isParentActive("/dashboard/clients")
+            isParentActive("/clients")
               ? "bg-primary text-primary-foreground font-medium"
               : "text-foreground hover:bg-ui-surface-elevated hover:text-foreground"
           }`}
@@ -289,11 +289,11 @@ export function DashboardSidebar({
         </button>
 
         <button
-          onClick={() => onNavigate("/dashboard/providers")}
+          onClick={() => onNavigate("/providers")}
           className={`w-full flex items-center ${
             isCollapsed ? "justify-center" : "gap-2"
           } px-3 py-2 rounded text-sm transition-colors ${
-            isParentActive("/dashboard/providers")
+            isParentActive("/providers")
               ? "bg-primary text-primary-foreground font-medium"
               : "text-foreground hover:bg-ui-surface-elevated hover:text-foreground"
           }`}
@@ -333,11 +333,11 @@ export function DashboardSidebar({
         </button>
 
         <button
-          onClick={() => onNavigate("/dashboard/routes")}
+          onClick={() => onNavigate("/routes")}
           className={`w-full flex items-center ${
             isCollapsed ? "justify-center" : "gap-2"
           } px-3 py-2 rounded text-sm transition-colors ${
-            isParentActive("/dashboard/routes")
+            isParentActive("/routes")
               ? "bg-primary text-primary-foreground font-medium"
               : "text-foreground hover:bg-ui-surface-elevated hover:text-foreground"
           }`}
@@ -377,11 +377,11 @@ export function DashboardSidebar({
         </button>
 
         <button
-          onClick={() => onNavigate("/dashboard/maintenance")}
+          onClick={() => onNavigate("/maintenance")}
           className={`w-full flex items-center ${
             isCollapsed ? "justify-center" : "gap-2"
           } px-3 py-2 rounded text-sm transition-colors ${
-            isParentActive("/dashboard/maintenance")
+            isParentActive("/maintenance")
               ? "bg-primary text-primary-foreground font-medium"
               : "text-foreground hover:bg-ui-surface-elevated hover:text-foreground"
           }`}
