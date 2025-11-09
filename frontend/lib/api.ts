@@ -147,11 +147,11 @@ import type {
   UpdateVehicleInput,
   VehicleQueryParams,
   PaginatedVehicles,
-  OperationWithDetails,
-  CreateOperationInput,
-  UpdateOperationInput,
-  OperationQueryParams,
-  PaginatedOperations,
+  OperationWithDetails as DriverOperationWithDetails,
+  CreateOperationInput as DriverCreateOperationInput,
+  UpdateOperationInput as DriverUpdateOperationInput,
+  OperationQueryParams as DriverOperationQueryParams,
+  PaginatedOperations as DriverPaginatedOperations,
 } from "@/types/drivers";
 
 /**
@@ -387,8 +387,8 @@ export async function getActiveDriverVehicleAssignment(
 export async function getDriverOperations(
   token: string,
   driverId: number,
-  params?: OperationQueryParams
-): Promise<PaginatedOperations> {
+  params?: DriverOperationQueryParams
+): Promise<DriverPaginatedOperations> {
   const queryParams = new URLSearchParams();
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -398,7 +398,7 @@ export async function getDriverOperations(
     });
   }
   const queryString = queryParams.toString();
-  return authenticatedRequest<PaginatedOperations>(
+  return authenticatedRequest<DriverPaginatedOperations>(
     `/api/drivers/${driverId}/operations${
       queryString ? `?${queryString}` : ""
     }`,
@@ -440,7 +440,7 @@ export async function getVehicles(
   }
   const queryString = queryParams.toString();
   return authenticatedRequest<PaginatedVehicles>(
-    `/api/drivers/vehicles${queryString ? `?${queryString}` : ""}`,
+    `/api/vehicles${queryString ? `?${queryString}` : ""}`,
     token
   );
 }
@@ -452,7 +452,7 @@ export async function getVehicleById(
   token: string,
   id: number
 ): Promise<Vehicle> {
-  return authenticatedRequest<Vehicle>(`/api/drivers/vehicles/${id}`, token);
+  return authenticatedRequest<Vehicle>(`/api/vehicles/${id}`, token);
 }
 
 /**
@@ -462,7 +462,7 @@ export async function createVehicle(
   token: string,
   data: CreateVehicleInput
 ): Promise<Vehicle> {
-  return authenticatedRequest<Vehicle>("/api/drivers/vehicles", token, {
+  return authenticatedRequest<Vehicle>("/api/vehicles", token, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -476,7 +476,7 @@ export async function updateVehicle(
   id: number,
   data: UpdateVehicleInput
 ): Promise<Vehicle> {
-  return authenticatedRequest<Vehicle>(`/api/drivers/vehicles/${id}`, token, {
+  return authenticatedRequest<Vehicle>(`/api/vehicles/${id}`, token, {
     method: "PUT",
     body: JSON.stringify(data),
   });
@@ -490,7 +490,7 @@ export async function deleteVehicle(
   id: number
 ): Promise<{ message: string }> {
   return authenticatedRequest<{ message: string }>(
-    `/api/drivers/vehicles/${id}`,
+    `/api/vehicles/${id}`,
     token,
     {
       method: "DELETE",
@@ -502,13 +502,31 @@ export async function deleteVehicle(
 // OPERATIONS API
 // ============================================================================
 
+import type {
+  Operation,
+  OperationWithDetails,
+  CreateOperationInput,
+  UpdateOperationInput,
+  OperationQueryParams,
+  PaginatedOperations as PaginatedOperationsType,
+  OperationStatistics,
+  DaySchedule,
+  WeekSchedule,
+  MonthSchedule,
+  TransportAssignment,
+  AssignTransportProviderInput,
+  ConfirmTransportAssignmentInput,
+  TransportOrder,
+  CreateTransportOrderInput,
+} from "@/types/operations";
+
 /**
  * Get all operations with filtering and pagination
  */
 export async function getOperations(
   token: string,
   params?: OperationQueryParams
-): Promise<PaginatedOperations> {
+): Promise<PaginatedOperationsType> {
   const queryParams = new URLSearchParams();
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -518,8 +536,8 @@ export async function getOperations(
     });
   }
   const queryString = queryParams.toString();
-  return authenticatedRequest<PaginatedOperations>(
-    `/api/drivers/operations${queryString ? `?${queryString}` : ""}`,
+  return authenticatedRequest<PaginatedOperationsType>(
+    `/api/operations${queryString ? `?${queryString}` : ""}`,
     token
   );
 }
@@ -532,7 +550,7 @@ export async function getOperationById(
   id: number
 ): Promise<OperationWithDetails> {
   return authenticatedRequest<OperationWithDetails>(
-    `/api/drivers/operations/${id}`,
+    `/api/operations/${id}`,
     token
   );
 }
@@ -544,14 +562,10 @@ export async function createOperation(
   token: string,
   data: CreateOperationInput
 ): Promise<OperationWithDetails> {
-  return authenticatedRequest<OperationWithDetails>(
-    "/api/drivers/operations",
-    token,
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    }
-  );
+  return authenticatedRequest<OperationWithDetails>("/api/operations", token, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 /**
@@ -563,7 +577,7 @@ export async function updateOperation(
   data: UpdateOperationInput
 ): Promise<OperationWithDetails> {
   return authenticatedRequest<OperationWithDetails>(
-    `/api/drivers/operations/${id}`,
+    `/api/operations/${id}`,
     token,
     {
       method: "PUT",
@@ -580,11 +594,183 @@ export async function deleteOperation(
   id: number
 ): Promise<{ message: string }> {
   return authenticatedRequest<{ message: string }>(
-    `/api/drivers/operations/${id}`,
+    `/api/operations/${id}`,
     token,
     {
       method: "DELETE",
     }
+  );
+}
+
+/**
+ * Get operation statistics
+ */
+export async function getOperationStatistics(
+  token: string,
+  operatorId?: number,
+  startDate?: string,
+  endDate?: string
+): Promise<OperationStatistics> {
+  const queryParams = new URLSearchParams();
+  if (operatorId) queryParams.append("operatorId", operatorId.toString());
+  if (startDate) queryParams.append("startDate", startDate);
+  if (endDate) queryParams.append("endDate", endDate);
+  const queryString = queryParams.toString();
+  return authenticatedRequest<OperationStatistics>(
+    `/api/operations/statistics${queryString ? `?${queryString}` : ""}`,
+    token
+  );
+}
+
+/**
+ * Get day schedule
+ */
+export async function getDaySchedule(
+  token: string,
+  date: string,
+  operatorId?: number
+): Promise<DaySchedule> {
+  const queryParams = new URLSearchParams();
+  queryParams.append("date", date);
+  if (operatorId) queryParams.append("operatorId", operatorId.toString());
+  return authenticatedRequest<DaySchedule>(
+    `/api/operations/schedule/day?${queryParams.toString()}`,
+    token
+  );
+}
+
+/**
+ * Get week schedule
+ */
+export async function getWeekSchedule(
+  token: string,
+  weekStart: string,
+  operatorId?: number
+): Promise<WeekSchedule> {
+  const queryParams = new URLSearchParams();
+  queryParams.append("weekStart", weekStart);
+  if (operatorId) queryParams.append("operatorId", operatorId.toString());
+  return authenticatedRequest<WeekSchedule>(
+    `/api/operations/schedule/week?${queryParams.toString()}`,
+    token
+  );
+}
+
+/**
+ * Get month schedule
+ */
+export async function getMonthSchedule(
+  token: string,
+  month: number,
+  year: number,
+  operatorId?: number
+): Promise<MonthSchedule> {
+  const queryParams = new URLSearchParams();
+  queryParams.append("month", month.toString());
+  queryParams.append("year", year.toString());
+  if (operatorId) queryParams.append("operatorId", operatorId.toString());
+  return authenticatedRequest<MonthSchedule>(
+    `/api/operations/schedule/month?${queryParams.toString()}`,
+    token
+  );
+}
+
+// ============================================================================
+// TRANSPORT PROVIDER ASSIGNMENT API
+// ============================================================================
+
+/**
+ * Assign transport provider to operation
+ */
+export async function assignTransportProvider(
+  token: string,
+  data: AssignTransportProviderInput
+): Promise<TransportAssignment> {
+  return authenticatedRequest<TransportAssignment>(
+    "/api/operations/assignments",
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    }
+  );
+}
+
+/**
+ * Confirm transport assignment
+ */
+export async function confirmTransportAssignment(
+  token: string,
+  assignmentId: number,
+  data: ConfirmTransportAssignmentInput
+): Promise<TransportAssignment> {
+  return authenticatedRequest<TransportAssignment>(
+    `/api/operations/assignments/${assignmentId}/confirm`,
+    token,
+    {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }
+  );
+}
+
+/**
+ * Get transport assignments for operation
+ */
+export async function getOperationAssignments(
+  token: string,
+  operationId: number
+): Promise<TransportAssignment[]> {
+  return authenticatedRequest<TransportAssignment[]>(
+    `/api/operations/${operationId}/assignments`,
+    token
+  );
+}
+
+// ============================================================================
+// TRANSPORT ORDERS API
+// ============================================================================
+
+/**
+ * Create transport order
+ */
+export async function createTransportOrder(
+  token: string,
+  data: CreateTransportOrderInput
+): Promise<TransportOrder> {
+  return authenticatedRequest<TransportOrder>(
+    "/api/operations/transport-orders",
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    }
+  );
+}
+
+/**
+ * Get transport order by ID
+ */
+export async function getTransportOrderById(
+  token: string,
+  orderId: number
+): Promise<TransportOrder> {
+  return authenticatedRequest<TransportOrder>(
+    `/api/operations/transport-orders/${orderId}`,
+    token
+  );
+}
+
+/**
+ * Get transport orders for operation
+ */
+export async function getOperationTransportOrders(
+  token: string,
+  operationId: number
+): Promise<TransportOrder[]> {
+  return authenticatedRequest<TransportOrder[]>(
+    `/api/operations/${operationId}/transport-orders`,
+    token
   );
 }
 

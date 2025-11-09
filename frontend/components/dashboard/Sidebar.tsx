@@ -115,17 +115,36 @@ export function DashboardSidebar({
                     : "text-slate-400 hover:text-slate-300 hover:bg-[#353845]"
                 }`}
               >
-                Vista en Tiempo Real
+                Dashboard
               </div>
               <div
-                onClick={() => onNavigate("/dashboard")}
-                className="px-3 py-2 text-xs text-slate-400 hover:text-slate-300 cursor-pointer hover:bg-[#353845] rounded"
+                onClick={() => onNavigate("/dashboard/operations")}
+                className={`px-3 py-2 text-xs cursor-pointer rounded ${
+                  isActive("/dashboard/operations")
+                    ? "text-white bg-[#2a2d3a]"
+                    : "text-slate-400 hover:text-slate-300 hover:bg-[#353845]"
+                }`}
               >
-                Programación de Traslados
+                Programación de Operaciones
+              </div>
+              {/* Módulo de Administración y Control de Operaciones */}
+              <div
+                onClick={() => onNavigate("/dashboard/#")}
+                className={`px-3 py-2 text-xs cursor-pointer rounded ${
+                  isActive("/dashboard/operations/admin")
+                    ? "text-white bg-[#2a2d3a]"
+                    : "text-slate-400 hover:text-slate-300 hover:bg-[#353845]"
+                }`}
+              >
+                Administración y Control de Operaciones
               </div>
               <div
                 onClick={() => onNavigate("/dashboard")}
-                className="px-3 py-2 text-xs text-slate-400 hover:text-slate-300 cursor-pointer hover:bg-[#353845] rounded"
+                className={`px-3 py-2 text-xs cursor-pointer rounded ${
+                  isActive("/dashboard/reports")
+                    ? "text-white bg-[#2a2d3a]"
+                    : "text-slate-400 hover:text-slate-300 hover:bg-[#353845]"
+                }`}
               >
                 Reportes Automáticos
               </div>

@@ -28,6 +28,10 @@ export class CreateOperationDto {
   providerId?: number;
 
   @IsInt()
+  @IsOptional()
+  routeId?: number;
+
+  @IsInt()
   @IsNotEmpty()
   driverId: number;
 
@@ -90,6 +94,10 @@ export class UpdateOperationDto {
   @IsInt()
   @IsOptional()
   providerId?: number;
+
+  @IsInt()
+  @IsOptional()
+  routeId?: number;
 
   @IsInt()
   @IsOptional()
