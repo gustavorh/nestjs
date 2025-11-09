@@ -28,7 +28,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
@@ -64,9 +63,7 @@ export default function RolesPage() {
   const [roleToEdit, setRoleToEdit] = useState<Role | null>(null);
   const [formData, setFormData] = useState<CreateRoleInput | UpdateRoleInput>({
     name: "",
-    description: "",
     permissions: [],
-    status: true,
   });
   const [formLoading, setFormLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -137,10 +134,9 @@ export default function RolesPage() {
     const user = getUser();
     if (!user) return;
     setFormData({
+      operatorId: user.operatorId, // Add operatorId from current user
       name: "",
-      description: "",
       permissions: [],
-      status: true,
     });
     setCreateDialogOpen(true);
   };
@@ -149,9 +145,7 @@ export default function RolesPage() {
     setRoleToEdit(role);
     setFormData({
       name: role.name,
-      description: role.description || "",
-      permissions: role.permissions,
-      status: role.status,
+      permissions: role.permissions || [],
     });
     setEditDialogOpen(true);
   };
@@ -383,14 +377,14 @@ export default function RolesPage() {
                           {role.name}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground max-w-[300px] truncate">
-                          {role.description || "Sin descripción"}
+                          ID: {role.id} | Operator: {role.operatorId}
                         </TableCell>
                         <TableCell>
                           <Badge
                             variant="outline"
                             className="border-primary/50 text-primary"
                           >
-                            {role.permissions.length} permisos
+                            {role.permissions?.length || 0} permisos
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -552,22 +546,6 @@ export default function RolesPage() {
               </div>
 
               <div>
-                <Label htmlFor="description" className="text-foreground">
-                  Descripción
-                </Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  className="bg-ui-surface-elevated border-border text-foreground mt-1"
-                  placeholder="Descripción del rol y sus responsabilidades..."
-                  rows={3}
-                />
-              </div>
-
-              <div>
                 <Label className="text-foreground mb-3 block">
                   Permisos ({formData.permissions?.length || 0} seleccionados)
                 </Label>
@@ -595,24 +573,9 @@ export default function RolesPage() {
                     </div>
                   ))}
                 </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="status"
-                  checked={formData.status}
-                  onChange={(e) =>
-                    setFormData({ ...formData, status: e.target.checked })
-                  }
-                  className="rounded border-border bg-ui-surface-elevated text-primary focus:ring-blue-500"
-                />
-                <Label
-                  htmlFor="status"
-                  className="text-foreground cursor-pointer"
-                >
-                  Rol Activo
-                </Label>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Los permisos se almacenan en la tabla de grants y roleGrants
+                </p>
               </div>
             </div>
 

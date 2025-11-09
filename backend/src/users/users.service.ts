@@ -5,7 +5,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, like, or, count, sql, SQL } from 'drizzle-orm';
 import { MySql2Database } from 'drizzle-orm/mysql2';
 import { DATABASE } from '../database/database.module';
 import { users, operators, roles, NewUser } from '../database/schema';
@@ -18,14 +18,63 @@ export class UsersService {
    * Find all users with their operator and role information
    * Optionally filter by operatorId for tenant isolation
    */
-  async findAll(operatorId?: number) {
-    const query = this.db
+  async findAll(params: {
+    operatorId?: number;
+    search?: string;
+    roleId?: number;
+    status?: boolean;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = params.page || 1;
+    const limit = params.limit || 10;
+    const offset = (page - 1) * limit;
+
+    // Build where conditions
+    const conditions: SQL[] = [];
+
+    if (params.operatorId !== undefined) {
+      conditions.push(eq(users.operatorId, params.operatorId));
+    }
+
+    if (params.search) {
+      const searchCondition = or(
+        like(users.username, `%${params.search}%`),
+        like(users.email, `%${params.search}%`),
+        like(users.firstName, `%${params.search}%`),
+        like(users.lastName, `%${params.search}%`),
+      );
+      if (searchCondition) {
+        conditions.push(searchCondition);
+      }
+    }
+
+    if (params.roleId !== undefined) {
+      conditions.push(eq(users.roleId, params.roleId));
+    }
+
+    if (params.status !== undefined) {
+      conditions.push(eq(users.status, params.status));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Get total count
+    const [{ total }] = await this.db
+      .select({ total: count() })
+      .from(users)
+      .where(whereClause);
+
+    // Get paginated data
+    const data = await this.db
       .select({
         id: users.id,
         username: users.username,
         email: users.email,
         firstName: users.firstName,
         lastName: users.lastName,
+        status: users.status,
+        lastActivityAt: users.lastActivityAt,
         operatorId: users.operatorId,
         roleId: users.roleId,
         createdAt: users.createdAt,
@@ -33,7 +82,6 @@ export class UsersService {
         operator: {
           id: operators.id,
           name: operators.name,
-          super: operators.super,
         },
         role: {
           id: roles.id,
@@ -42,13 +90,21 @@ export class UsersService {
       })
       .from(users)
       .leftJoin(operators, eq(users.operatorId, operators.id))
-      .leftJoin(roles, eq(users.roleId, roles.id));
+      .leftJoin(roles, eq(users.roleId, roles.id))
+      .where(whereClause)
+      .limit(limit)
+      .offset(offset)
+      .orderBy(sql`${users.createdAt} DESC`);
 
-    if (operatorId) {
-      return query.where(eq(users.operatorId, operatorId));
-    }
-
-    return query;
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total: Number(total),
+        totalPages: Math.ceil(Number(total) / limit),
+      },
+    };
   }
 
   /**
@@ -201,6 +257,28 @@ export class UsersService {
       throw new BadRequestException(
         `Role with ID ${newUser.roleId} not found for operator ${newUser.operatorId}`,
       );
+    }
+
+    // Check if username already exists
+    const [existingUsername] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.username, newUser.username));
+
+    if (existingUsername) {
+      throw new BadRequestException(
+        `Username "${newUser.username}" already exists`,
+      );
+    }
+
+    // Check if email already exists
+    const [existingEmail] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.email, newUser.email));
+
+    if (existingEmail) {
+      throw new BadRequestException(`Email "${newUser.email}" already exists`);
     }
 
     const [insertedUser] = await this.db

@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
@@ -75,15 +74,9 @@ export default function OperatorsPage() {
     CreateOperatorInput | UpdateOperatorInput
   >({
     name: "",
-    description: "",
+    rut: "",
     super: false,
-    contactName: "",
-    contactEmail: "",
-    contactPhone: "",
-    address: "",
-    city: "",
-    region: "",
-    country: "Chile",
+    expiration: "",
     status: true,
   });
   const [formLoading, setFormLoading] = useState(false);
@@ -170,15 +163,9 @@ export default function OperatorsPage() {
   const handleCreateClick = () => {
     setFormData({
       name: "",
-      description: "",
+      rut: "",
       super: false,
-      contactName: "",
-      contactEmail: "",
-      contactPhone: "",
-      address: "",
-      city: "",
-      region: "",
-      country: "Chile",
+      expiration: "",
       status: true,
     });
     setCreateDialogOpen(true);
@@ -188,15 +175,9 @@ export default function OperatorsPage() {
     setOperatorToEdit(operator);
     setFormData({
       name: operator.name,
-      description: operator.description || "",
+      rut: operator.rut || "",
       super: operator.super,
-      contactName: operator.contactName || "",
-      contactEmail: operator.contactEmail || "",
-      contactPhone: operator.contactPhone || "",
-      address: operator.address || "",
-      city: operator.city || "",
-      region: operator.region || "",
-      country: operator.country || "Chile",
+      expiration: operator.expiration || "",
       status: operator.status,
     });
     setEditDialogOpen(true);
@@ -442,10 +423,10 @@ export default function OperatorsPage() {
                           Nombre
                         </TableHead>
                         <TableHead className="text-muted-foreground">
-                          Contacto
+                          RUT
                         </TableHead>
                         <TableHead className="text-muted-foreground">
-                          Ubicación
+                          Expiración
                         </TableHead>
                         <TableHead className="text-muted-foreground">
                           Tipo
@@ -472,55 +453,32 @@ export default function OperatorsPage() {
                                   <Shield className="w-4 h-4 text-orange-400" />
                                 )}
                               </div>
-                              {operator.description && (
-                                <div className="text-xs text-muted-foreground mt-1 truncate max-w-[250px]">
-                                  {operator.description}
-                                </div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                ID: {operator.id}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {operator.rut || (
+                                <span className="text-muted-foreground text-xs">
+                                  Sin RUT
+                                </span>
                               )}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="text-sm space-y-1">
-                              {operator.contactName && (
-                                <div className="text-foreground">
-                                  {operator.contactName}
+                            <div className="text-sm">
+                              {operator.expiration ? (
+                                <div>
+                                  {new Date(
+                                    operator.expiration
+                                  ).toLocaleDateString("es-ES")}
                                 </div>
-                              )}
-                              {operator.contactEmail && (
-                                <div className="text-muted-foreground text-xs">
-                                  {operator.contactEmail}
-                                </div>
-                              )}
-                              {operator.contactPhone && (
-                                <div className="text-muted-foreground text-xs">
-                                  {operator.contactPhone}
-                                </div>
-                              )}
-                              {!operator.contactName &&
-                                !operator.contactEmail &&
-                                !operator.contactPhone && (
-                                  <div className="text-muted-foreground text-xs">
-                                    Sin contacto
-                                  </div>
-                                )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm space-y-1">
-                              {operator.city && (
-                                <div className="text-foreground">
-                                  {operator.city}
-                                </div>
-                              )}
-                              {operator.region && (
-                                <div className="text-muted-foreground text-xs">
-                                  {operator.region}
-                                </div>
-                              )}
-                              {!operator.city && !operator.region && (
-                                <div className="text-muted-foreground text-xs">
-                                  N/A
-                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">
+                                  Sin expiración
+                                </span>
                               )}
                             </div>
                           </TableCell>
@@ -732,19 +690,40 @@ export default function OperatorsPage() {
                 </div>
 
                 <div className="col-span-2">
-                  <Label htmlFor="description" className="text-foreground">
-                    Descripción
+                  <Label htmlFor="rut" className="text-foreground">
+                    RUT
                   </Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
+                  <Input
+                    id="rut"
+                    value={formData.rut}
                     onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
+                      setFormData({ ...formData, rut: e.target.value })
                     }
                     className="bg-ui-surface-elevated border-border text-foreground mt-1"
-                    placeholder="Breve descripción de la organización..."
-                    rows={3}
+                    placeholder="12.345.678-9"
+                    maxLength={12}
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Formato: 12.345.678-9
+                  </p>
+                </div>
+
+                <div className="col-span-2">
+                  <Label htmlFor="expiration" className="text-foreground">
+                    Fecha de Expiración
+                  </Label>
+                  <Input
+                    id="expiration"
+                    type="date"
+                    value={formData.expiration}
+                    onChange={(e) =>
+                      setFormData({ ...formData, expiration: e.target.value })
+                    }
+                    className="bg-ui-surface-elevated border-border text-foreground mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Fecha límite de operación de la organización
+                  </p>
                 </div>
 
                 <div className="col-span-2 flex items-center space-x-2">
@@ -763,136 +742,6 @@ export default function OperatorsPage() {
                   >
                     Organización Super (acceso completo al sistema)
                   </Label>
-                </div>
-              </div>
-            </div>
-
-            {/* Contact Information */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-foreground border-b border-border pb-2">
-                Información de Contacto
-              </h3>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <Label htmlFor="contactName" className="text-foreground">
-                    Nombre de Contacto
-                  </Label>
-                  <Input
-                    id="contactName"
-                    value={formData.contactName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, contactName: e.target.value })
-                    }
-                    className="bg-ui-surface-elevated border-border text-foreground mt-1"
-                    placeholder="Ej: Juan Pérez"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="contactEmail" className="text-foreground">
-                    Email de Contacto
-                  </Label>
-                  <Input
-                    id="contactEmail"
-                    type="email"
-                    value={formData.contactEmail}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        contactEmail: e.target.value,
-                      })
-                    }
-                    className="bg-ui-surface-elevated border-border text-foreground mt-1"
-                    placeholder="contacto@empresa.cl"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="contactPhone" className="text-foreground">
-                    Teléfono de Contacto
-                  </Label>
-                  <Input
-                    id="contactPhone"
-                    value={formData.contactPhone}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        contactPhone: e.target.value,
-                      })
-                    }
-                    className="bg-ui-surface-elevated border-border text-foreground mt-1"
-                    placeholder="+56 9 1234 5678"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Location Information */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-foreground border-b border-border pb-2">
-                Ubicación
-              </h3>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <Label htmlFor="address" className="text-foreground">
-                    Dirección
-                  </Label>
-                  <Input
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) =>
-                      setFormData({ ...formData, address: e.target.value })
-                    }
-                    className="bg-ui-surface-elevated border-border text-foreground mt-1"
-                    placeholder="Ej: Av. Principal 123"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="city" className="text-foreground">
-                    Ciudad
-                  </Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) =>
-                      setFormData({ ...formData, city: e.target.value })
-                    }
-                    className="bg-ui-surface-elevated border-border text-foreground mt-1"
-                    placeholder="Ej: Santiago"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="region" className="text-foreground">
-                    Región
-                  </Label>
-                  <Input
-                    id="region"
-                    value={formData.region}
-                    onChange={(e) =>
-                      setFormData({ ...formData, region: e.target.value })
-                    }
-                    className="bg-ui-surface-elevated border-border text-foreground mt-1"
-                    placeholder="Ej: Metropolitana"
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <Label htmlFor="country" className="text-foreground">
-                    País
-                  </Label>
-                  <Input
-                    id="country"
-                    value={formData.country}
-                    onChange={(e) =>
-                      setFormData({ ...formData, country: e.target.value })
-                    }
-                    className="bg-ui-surface-elevated border-border text-foreground mt-1"
-                    placeholder="Chile"
-                  />
                 </div>
 
                 <div className="col-span-2 flex items-center space-x-2">

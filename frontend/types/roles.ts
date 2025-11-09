@@ -44,39 +44,37 @@ export const PERMISSIONS = [
 
 export type PermissionType = (typeof PERMISSIONS)[number]["value"];
 
-// Role interface
+// Role interface - matches database schema
+// Note: permissions are stored in separate grants and roleGrants tables
 export interface Role {
   id: number;
-  operatorId: number;
   name: string;
-  description?: string | null;
-  permissions: string[];
-  isSystemRole: boolean;
-  status: boolean;
+  operatorId: number;
   createdAt: string;
   updatedAt: string;
   operator?: {
     id: number;
     name: string;
   };
-  userCount?: number;
+  // Extended fields from backend join queries
+  description?: string | null; // Not in schema, may come from backend
+  permissions?: string[]; // Joined from roleGrants
+  isSystemRole?: boolean; // Computed by backend
+  status?: boolean; // Not in schema, may come from backend
+  userCount?: number; // Computed by backend
 }
 
-// Create role input
+// Create role input - matches database schema
 export interface CreateRoleInput {
-  operatorId: number;
   name: string;
-  description?: string;
-  permissions: string[];
-  status?: boolean;
+  operatorId: number;
+  permissions?: string[]; // Will be stored in roleGrants table
 }
 
-// Update role input
+// Update role input - matches database schema
 export interface UpdateRoleInput {
   name?: string;
-  description?: string;
-  permissions?: string[];
-  status?: boolean;
+  permissions?: string[]; // Will update roleGrants table
 }
 
 // Role query parameters

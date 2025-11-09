@@ -7,6 +7,7 @@ import { DatabaseModule } from './database/database.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { AuditModule } from './audit/audit.module';
+import { OperatorsModule } from './operators/operators.module';
 import { DriversModule } from './drivers/drivers.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
 import { ClientsModule } from './clients/clients.module';
@@ -22,6 +23,7 @@ import { AuditInterceptor } from './auth/interceptors/audit.interceptor';
       envFilePath: '.env',
     }),
     DatabaseModule,
+    OperatorsModule,
     UsersModule,
     AuthModule,
     AuditModule,

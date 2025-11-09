@@ -13,20 +13,17 @@ export const USER_STATUSES = [
 
 export type UserStatusType = (typeof USER_STATUSES)[number]["value"];
 
-// User interface
+// User interface - matches database schema
 export interface User {
   id: number;
-  operatorId: number;
-  roleId: number;
   username: string;
   email: string;
   firstName: string;
   lastName: string;
-  phone?: string | null;
-  position?: string | null;
-  department?: string | null;
   status: boolean;
-  lastLogin?: string | null;
+  lastActivityAt?: string | null;
+  operatorId: number;
+  roleId: number;
   createdAt: string;
   updatedAt: string;
   operator?: {
@@ -40,7 +37,7 @@ export interface User {
   };
 }
 
-// Create user input
+// Create user input - matches database schema
 export interface CreateUserInput {
   operatorId: number;
   roleId: number;
@@ -49,13 +46,10 @@ export interface CreateUserInput {
   password: string;
   firstName: string;
   lastName: string;
-  phone?: string;
-  position?: string;
-  department?: string;
   status?: boolean;
 }
 
-// Update user input
+// Update user input - matches database schema
 export interface UpdateUserInput {
   roleId?: number;
   username?: string;
@@ -63,9 +57,6 @@ export interface UpdateUserInput {
   password?: string;
   firstName?: string;
   lastName?: string;
-  phone?: string;
-  position?: string;
-  department?: string;
   status?: boolean;
 }
 

@@ -3,51 +3,33 @@
  * Multi-tenancy organization management
  */
 
-// Operator interface
+// Operator interface - matches database schema
 export interface Operator {
   id: number;
   name: string;
-  description?: string | null;
+  rut?: string | null; // Format: 21.023.531-0
   super: boolean;
-  contactName?: string | null;
-  contactEmail?: string | null;
-  contactPhone?: string | null;
-  address?: string | null;
-  city?: string | null;
-  region?: string | null;
-  country?: string | null;
+  expiration?: string | null; // Expiration date for the operator
   status: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-// Create operator input
+// Create operator input - matches database schema
 export interface CreateOperatorInput {
   name: string;
-  description?: string;
+  rut?: string; // Format: 21.023.531-0
   super?: boolean;
-  contactName?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  address?: string;
-  city?: string;
-  region?: string;
-  country?: string;
+  expiration?: string; // ISO date string
   status?: boolean;
 }
 
-// Update operator input
+// Update operator input - matches database schema
 export interface UpdateOperatorInput {
   name?: string;
-  description?: string;
+  rut?: string;
   super?: boolean;
-  contactName?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  address?: string;
-  city?: string;
-  region?: string;
-  country?: string;
+  expiration?: string;
   status?: boolean;
 }
 

@@ -81,9 +81,6 @@ export default function UsersPage() {
     password: "",
     firstName: "",
     lastName: "",
-    phone: "",
-    position: "",
-    department: "",
     status: true,
   });
   const [formLoading, setFormLoading] = useState(false);
@@ -174,15 +171,13 @@ export default function UsersPage() {
     const user = getUser();
     if (!user) return;
     setFormData({
+      operatorId: user.operatorId, // Add operatorId from current user
       roleId: roles[0]?.id || 0,
       username: "",
       email: "",
       password: "",
       firstName: "",
       lastName: "",
-      phone: "",
-      position: "",
-      department: "",
       status: true,
     });
     setCreateDialogOpen(true);
@@ -196,9 +191,6 @@ export default function UsersPage() {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      phone: user.phone || "",
-      position: user.position || "",
-      department: user.department || "",
       status: user.status,
     });
     setEditDialogOpen(true);
@@ -402,15 +394,11 @@ export default function UsersPage() {
                         className="border-b border-border hover:bg-ui-surface-elevated"
                       >
                         <TableCell>
-                          <div>
-                            <div className="font-medium text-foreground">
-                              {u.firstName} {u.lastName}
-                            </div>
-                            {u.position && (
-                              <div className="text-xs text-muted-foreground">
-                                {u.position}
-                              </div>
-                            )}
+                          <div className="font-medium text-foreground">
+                            {u.firstName} {u.lastName}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            ID: {u.id}
                           </div>
                         </TableCell>
                         <TableCell className="text-foreground">
@@ -660,45 +648,7 @@ export default function UsersPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label htmlFor="phone" className="text-foreground">
-                  Teléfono
-                </Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                  className="bg-ui-surface-elevated border-border text-foreground mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="position" className="text-foreground">
-                  Cargo
-                </Label>
-                <Input
-                  id="position"
-                  value={formData.position}
-                  onChange={(e) =>
-                    setFormData({ ...formData, position: e.target.value })
-                  }
-                  className="bg-ui-surface-elevated border-border text-foreground mt-1"
-                />
-              </div>
-              <div className="col-span-2">
-                <Label htmlFor="department" className="text-foreground">
-                  Departamento
-                </Label>
-                <Input
-                  id="department"
-                  value={formData.department}
-                  onChange={(e) =>
-                    setFormData({ ...formData, department: e.target.value })
-                  }
-                  className="bg-ui-surface-elevated border-border text-foreground mt-1"
-                />
-              </div>
+
               <div className="col-span-2 flex items-center space-x-2">
                 <input
                   type="checkbox"

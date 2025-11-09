@@ -14,11 +14,11 @@ import {
   Request,
   ForbiddenException,
 } from '@nestjs/common';
-import { UsersService } from './users.service';
-import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { RequirePermission } from '../auth/decorators/require-permission.decorator';
+import { RolesService } from './roles.service';
+import { CreateRoleDto, UpdateRoleDto } from './dto/role.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { PermissionsGuard } from './guards/permissions.guard';
+import { RequirePermission } from './decorators/require-permission.decorator';
 
 interface RequestWithUser extends Request {
   user: {
@@ -31,28 +31,26 @@ interface RequestWithUser extends Request {
   };
 }
 
-@Controller('users')
+@Controller('roles')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
-export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+export class RolesController {
+  constructor(private readonly rolesService: RolesService) {}
 
   @Get()
-  @RequirePermission('users', 'read')
+  @RequirePermission('roles', 'read')
   async findAll(
     @Request() req: RequestWithUser,
     @Query('search') search?: string,
-    @Query('roleId') roleId?: string,
     @Query('status') status?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    // Non-super users can only see users from their own operator
+    // Non-super users can only see roles from their own operator
     const operatorId = req.user.isSuper ? undefined : req.user.operatorId;
 
-    return this.usersService.findAll({
+    return this.rolesService.findAll({
       operatorId,
       search,
-      roleId: roleId ? parseInt(roleId, 10) : undefined,
       status: status !== undefined ? status === 'true' : undefined,
       page: page ? parseInt(page, 10) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
@@ -60,51 +58,52 @@ export class UsersController {
   }
 
   @Get(':id')
-  @RequirePermission('users', 'read')
+  @RequirePermission('roles', 'read')
   async findOne(
     @Param('id', ParseIntPipe) id: number,
     @Request() req: RequestWithUser,
   ) {
-    // Non-super users can only view users from their own operator
+    // Non-super users can only view roles from their own operator
     const operatorId = req.user.isSuper ? undefined : req.user.operatorId;
-    return this.usersService.findById(id, operatorId);
+    return this.rolesService.findById(id, operatorId);
   }
 
   @Post()
-  @RequirePermission('users', 'create')
+  @RequirePermission('roles', 'create')
   @HttpCode(HttpStatus.CREATED)
   async create(
-    @Body() createUserDto: CreateUserDto,
+    @Body() createRoleDto: CreateRoleDto,
     @Request() req: RequestWithUser,
   ) {
-    // Non-super users can only create users in their own operator
-    if (!req.user.isSuper && createUserDto.operatorId !== req.user.operatorId) {
-      throw new ForbiddenException('Cannot create users for other operators');
+    // Non-super users can only create roles for their own operator
+    if (!req.user.isSuper && createRoleDto.operatorId !== req.user.operatorId) {
+      throw new ForbiddenException('Cannot create roles for other operators');
     }
-    return this.usersService.create(createUserDto);
+
+    return this.rolesService.create(createRoleDto);
   }
 
   @Put(':id')
-  @RequirePermission('users', 'update')
+  @RequirePermission('roles', 'update')
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateUserDto: UpdateUserDto,
+    @Body() updateRoleDto: UpdateRoleDto,
     @Request() req: RequestWithUser,
   ) {
-    // Non-super users can only update users from their own operator
+    // Non-super users can only update roles from their own operator
     const operatorId = req.user.isSuper ? undefined : req.user.operatorId;
-    return this.usersService.update(id, updateUserDto, operatorId);
+    return this.rolesService.update(id, updateRoleDto, operatorId);
   }
 
   @Delete(':id')
-  @RequirePermission('users', 'delete')
+  @RequirePermission('roles', 'delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(
     @Param('id', ParseIntPipe) id: number,
     @Request() req: RequestWithUser,
   ) {
-    // Non-super users can only delete users from their own operator
+    // Non-super users can only delete roles from their own operator
     const operatorId = req.user.isSuper ? undefined : req.user.operatorId;
-    await this.usersService.delete(id, operatorId);
+    await this.rolesService.delete(id, operatorId);
   }
 }
