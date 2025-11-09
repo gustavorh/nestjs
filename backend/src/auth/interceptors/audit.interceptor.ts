@@ -5,6 +5,7 @@ import {
   CallHandler,
   Inject,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { MySql2Database } from 'drizzle-orm/mysql2';
@@ -26,9 +27,23 @@ interface RequestWithUser {
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
-  constructor(@Inject(DATABASE) private db: MySql2Database) {}
+  private readonly isAuditEnabled: boolean;
+
+  constructor(
+    @Inject(DATABASE) private db: MySql2Database,
+    private readonly configService: ConfigService,
+  ) {
+    // Check if audit logging is enabled (default to false for development)
+    this.isAuditEnabled =
+      this.configService.get<string>('ENABLE_AUDIT_LOGGING') === 'true';
+  }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    // Skip all audit logging if disabled
+    if (!this.isAuditEnabled) {
+      return next.handle();
+    }
+
     const request = context.switchToHttp().getRequest<RequestWithUser>();
     const user = request.user;
     const method = request.method;
