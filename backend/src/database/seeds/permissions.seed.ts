@@ -22,54 +22,77 @@ export async function seedPermissions(db: MySql2Database): Promise<void> {
       { resource: 'users', action: 'update' },
       { resource: 'users', action: 'delete' },
 
-      // Orders management
-      { resource: 'orders', action: 'create' },
-      { resource: 'orders', action: 'read' },
-      { resource: 'orders', action: 'update' },
-      { resource: 'orders', action: 'delete' },
-      { resource: 'orders', action: 'close' },
-
       // Routes management
       { resource: 'routes', action: 'create' },
       { resource: 'routes', action: 'read' },
       { resource: 'routes', action: 'update' },
       { resource: 'routes', action: 'delete' },
-      { resource: 'routes', action: 'assign' },
 
       // Drivers management
       { resource: 'drivers', action: 'create' },
       { resource: 'drivers', action: 'read' },
       { resource: 'drivers', action: 'update' },
       { resource: 'drivers', action: 'delete' },
+      { resource: 'drivers:documents', action: 'create' },
+      { resource: 'drivers:documents', action: 'read' },
+      { resource: 'drivers:documents', action: 'update' },
+      { resource: 'drivers:documents', action: 'delete' },
 
       // Vehicles management
       { resource: 'vehicles', action: 'create' },
       { resource: 'vehicles', action: 'read' },
       { resource: 'vehicles', action: 'update' },
       { resource: 'vehicles', action: 'delete' },
-
-      // Trucks management
-      { resource: 'trucks', action: 'create' },
-      { resource: 'trucks', action: 'read' },
-      { resource: 'trucks', action: 'update' },
-      { resource: 'trucks', action: 'delete' },
-      { resource: 'trucks:documents', action: 'create' },
-      { resource: 'trucks:documents', action: 'read' },
-      { resource: 'trucks:documents', action: 'update' },
-      { resource: 'trucks:documents', action: 'delete' },
-      { resource: 'trucks:status', action: 'read' },
-      { resource: 'trucks:status', action: 'update' },
-      { resource: 'trucks:operations', action: 'read' },
-      { resource: 'trucks:stats', action: 'read' },
+      { resource: 'vehicles:documents', action: 'create' },
+      { resource: 'vehicles:documents', action: 'read' },
+      { resource: 'vehicles:documents', action: 'update' },
+      { resource: 'vehicles:documents', action: 'delete' },
+      { resource: 'vehicles:status', action: 'read' },
+      { resource: 'vehicles:status', action: 'update' },
+      { resource: 'vehicles:operations', action: 'read' },
+      { resource: 'vehicles:stats', action: 'read' },
+      { resource: 'vehicles:assignments', action: 'create' },
+      { resource: 'vehicles:assignments', action: 'read' },
+      { resource: 'vehicles:assignments', action: 'update' },
+      { resource: 'vehicles:assignments', action: 'delete' },
 
       // Operations management
       { resource: 'operations', action: 'create' },
       { resource: 'operations', action: 'read' },
       { resource: 'operations', action: 'update' },
       { resource: 'operations', action: 'delete' },
+      { resource: 'operations', action: 'assign' },
+      { resource: 'operations', action: 'unassign' },
+      { resource: 'operations:assignments', action: 'create' },
+      { resource: 'operations:assignments', action: 'read' },
+      { resource: 'operations:assignments', action: 'update' },
+      { resource: 'operations:assignments', action: 'delete' },
+
+      // Clients management
+      { resource: 'clients', action: 'create' },
+      { resource: 'clients', action: 'read' },
+      { resource: 'clients', action: 'update' },
+      { resource: 'clients', action: 'delete' },
+      { resource: 'clients:operations', action: 'read' },
+      { resource: 'clients:statistics', action: 'read' },
+      { resource: 'clients:analytics', action: 'read' },
+
+      // Providers management
+      { resource: 'providers', action: 'create' },
+      { resource: 'providers', action: 'read' },
+      { resource: 'providers', action: 'update' },
+      { resource: 'providers', action: 'delete' },
+      { resource: 'providers:operations', action: 'read' },
+      { resource: 'providers:statistics', action: 'read' },
+
+      // Dashboard & Analytics
+      { resource: 'dashboard', action: 'read' },
+      { resource: 'analytics', action: 'read' },
+      { resource: 'statistics', action: 'read' },
 
       // Reports
       { resource: 'reports', action: 'read' },
+      { resource: 'reports', action: 'create' },
       { resource: 'reports', action: 'export' },
 
       // Settings/Configuration
@@ -170,7 +193,10 @@ export async function seedPermissions(db: MySql2Database): Promise<void> {
         description:
           'Control y seguimiento de operaciones, con capacidad de edición',
         permissions: Object.keys(createdGrants).filter(
-          (key) => !key.includes('users:delete') && !key.includes('roles:'),
+          (key) =>
+            !key.includes('users:delete') &&
+            !key.includes('roles:delete') &&
+            !key.includes('operators:delete'),
         ),
       },
       {
@@ -178,28 +204,49 @@ export async function seedPermissions(db: MySql2Database): Promise<void> {
         description:
           'Ingreso de programación, monitoreo y cierre de operaciones',
         permissions: [
-          'orders:create',
-          'orders:read',
-          'orders:update',
-          'orders:close',
+          'operations:create',
+          'operations:read',
+          'operations:update',
+          'operations:assign',
+          'operations:assignments:create',
+          'operations:assignments:read',
+          'operations:assignments:update',
           'routes:create',
           'routes:read',
           'routes:update',
-          'routes:assign',
           'drivers:read',
           'vehicles:read',
+          'vehicles:operations:read',
+          'clients:read',
+          'providers:read',
+          'dashboard:read',
           'reports:read',
         ],
       },
       {
         name: 'Chofer',
-        description:
-          'Acceso limitado para ejecución en terreno (App BeeTracer)',
+        description: 'Acceso limitado para ejecución en terreno',
         permissions: [
+          'operations:read',
+          'operations:update',
           'routes:read',
-          'routes:update',
-          'orders:read',
-          'orders:update',
+          'vehicles:read',
+          'drivers:read',
+        ],
+      },
+      {
+        name: 'Visualizador',
+        description: 'Solo lectura de información sin capacidad de edición',
+        permissions: [
+          'dashboard:read',
+          'operations:read',
+          'routes:read',
+          'drivers:read',
+          'vehicles:read',
+          'clients:read',
+          'providers:read',
+          'statistics:read',
+          'reports:read',
         ],
       },
     ];

@@ -69,6 +69,8 @@ import {
   Users,
   Package,
   CheckCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   Dialog,
@@ -98,6 +100,8 @@ export default function OperationsPage() {
     useState<OperationWithDetails | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // Form data
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -120,7 +124,6 @@ export default function OperationsPage() {
 
   // Filters
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [providerFilter, setProviderFilter] = useState<string>("all");
@@ -145,7 +148,7 @@ export default function OperationsPage() {
     fetchCatalogs();
     fetchOperations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, statusFilter, typeFilter, clientFilter, providerFilter]);
+  }, [page, typeFilter, clientFilter, providerFilter, viewMode, currentMonth]);
 
   const fetchCatalogs = async () => {
     try {
@@ -201,17 +204,38 @@ export default function OperationsPage() {
       const params: OperationQueryParams = {
         operatorId: user.operatorId,
         page,
-        limit,
+        limit: viewMode === "calendar" ? 1000 : limit, // Fetch all for calendar view
+        status: "scheduled", // Only fetch programmed operations
       };
 
       if (search) params.search = search;
-      if (statusFilter !== "all") params.status = statusFilter;
       if (typeFilter !== "all") params.operationType = typeFilter;
       if (clientFilter !== "all") params.clientId = parseInt(clientFilter);
       if (providerFilter !== "all")
         params.providerId = parseInt(providerFilter);
-      if (dateRangeFilter.start) params.startDate = dateRangeFilter.start;
-      if (dateRangeFilter.end) params.endDate = dateRangeFilter.end;
+
+      // For calendar view, fetch operations for the current month
+      if (viewMode === "calendar") {
+        const firstDay = new Date(
+          currentMonth.getFullYear(),
+          currentMonth.getMonth(),
+          1
+        );
+        const lastDay = new Date(
+          currentMonth.getFullYear(),
+          currentMonth.getMonth() + 1,
+          0,
+          23,
+          59,
+          59
+        );
+        params.startDate = firstDay.toISOString();
+        params.endDate = lastDay.toISOString();
+      } else {
+        // For list view, use the date range filter if set
+        if (dateRangeFilter.start) params.startDate = dateRangeFilter.start;
+        if (dateRangeFilter.end) params.endDate = dateRangeFilter.end;
+      }
 
       const response = await getOperations(token, params);
       setOperations(response.data);
@@ -450,16 +474,438 @@ export default function OperationsPage() {
     return null;
   }
 
-  // Calculate statistics
-  const totalScheduled = operations.filter(
-    (o) => o.operation.status === "scheduled"
-  ).length;
-  const totalInProgress = operations.filter(
-    (o) => o.operation.status === "in-progress"
-  ).length;
-  const totalCompleted = operations.filter(
-    (o) => o.operation.status === "completed"
-  ).length;
+  // Calculate statistics - All operations shown are scheduled
+  const totalScheduled = operations.length; // All displayed operations are scheduled
+
+  // Calendar utility functions
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    return { daysInMonth, startingDayOfWeek, firstDay, lastDay };
+  };
+
+  const getOperationsForDate = (date: Date) => {
+    return operations.filter((op) => {
+      const opDate = new Date(op.operation.scheduledStartDate);
+      return (
+        opDate.getDate() === date.getDate() &&
+        opDate.getMonth() === date.getMonth() &&
+        opDate.getFullYear() === date.getFullYear()
+      );
+    });
+  };
+
+  const changeMonth = (direction: "prev" | "next") => {
+    setCurrentMonth((prev) => {
+      const newMonth = new Date(prev);
+      if (direction === "prev") {
+        newMonth.setMonth(newMonth.getMonth() - 1);
+      } else {
+        newMonth.setMonth(newMonth.getMonth() + 1);
+      }
+      return newMonth;
+    });
+  };
+
+  const goToToday = () => {
+    setCurrentMonth(new Date());
+  };
+
+  const formatMonthYear = (date: Date) => {
+    return new Intl.DateTimeFormat("es-CL", {
+      month: "long",
+      year: "numeric",
+    }).format(date);
+  };
+
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  };
+
+  const isSameDate = (date1: Date | null, date2: Date) => {
+    if (!date1) return false;
+    return (
+      date1.getDate() === date2.getDate() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getFullYear() === date2.getFullYear()
+    );
+  };
+
+  // Render calendar view
+  const renderCalendarView = () => {
+    const { daysInMonth, startingDayOfWeek, firstDay } =
+      getDaysInMonth(currentMonth);
+    const weeks: Date[][] = [];
+    let currentWeek: Date[] = [];
+
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      currentWeek.push(
+        new Date(
+          firstDay.getFullYear(),
+          firstDay.getMonth(),
+          -startingDayOfWeek + i + 1
+        )
+      );
+    }
+
+    // Add all days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth(),
+        day
+      );
+      currentWeek.push(date);
+
+      if (currentWeek.length === 7) {
+        weeks.push(currentWeek);
+        currentWeek = [];
+      }
+    }
+
+    // Add remaining days to complete the last week
+    if (currentWeek.length > 0) {
+      const remainingDays = 7 - currentWeek.length;
+      for (let i = 1; i <= remainingDays; i++) {
+        currentWeek.push(
+          new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, i)
+        );
+      }
+      weeks.push(currentWeek);
+    }
+
+    return (
+      <div className="space-y-4">
+        {/* Calendar Header with Filters */}
+        <div className="space-y-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <h2 className="text-xl font-semibold text-foreground capitalize">
+              {formatMonthYear(currentMonth)}
+            </h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => changeMonth("prev")}
+                className="border-border text-foreground hover:bg-ui-surface-elevated"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span className="sr-only">Mes anterior</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToToday}
+                className="border-border text-foreground hover:bg-ui-surface-elevated"
+              >
+                Hoy
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => changeMonth("next")}
+                className="border-border text-foreground hover:bg-ui-surface-elevated"
+              >
+                <ChevronRight className="h-4 w-4" />
+                <span className="sr-only">Mes siguiente</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Integrated Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                Tipo de Operación
+              </label>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="bg-ui-surface-elevated border-border text-foreground h-9">
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los tipos</SelectItem>
+                  {OperationTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                Cliente
+              </label>
+              <Select value={clientFilter} onValueChange={setClientFilter}>
+                <SelectTrigger className="bg-ui-surface-elevated border-border text-foreground h-9">
+                  <SelectValue placeholder="Cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los clientes</SelectItem>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id.toString()}>
+                      {client.businessName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                Proveedor
+              </label>
+              <Select value={providerFilter} onValueChange={setProviderFilter}>
+                <SelectTrigger className="bg-ui-surface-elevated border-border text-foreground h-9">
+                  <SelectValue placeholder="Proveedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los proveedores</SelectItem>
+                  {providers.map((provider) => (
+                    <SelectItem
+                      key={provider.id}
+                      value={provider.id.toString()}
+                    >
+                      {provider.businessName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* Calendar Grid */}
+        <div className="border border-border rounded-lg overflow-hidden">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 bg-ui-surface-elevated border-b border-border">
+            {["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"].map((day) => (
+              <div
+                key={day}
+                className="p-3 text-center text-sm font-semibold text-muted-foreground"
+              >
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar weeks */}
+          <div className="divide-y divide-border">
+            {weeks.map((week, weekIdx) => (
+              <div
+                key={weekIdx}
+                className="grid grid-cols-7 divide-x divide-border"
+              >
+                {week.map((date, dayIdx) => {
+                  const isCurrentMonth =
+                    date.getMonth() === currentMonth.getMonth();
+                  const dayOperations = getOperationsForDate(date);
+                  const todayCheck = isToday(date);
+                  const selected = isSameDate(selectedDate, date);
+
+                  return (
+                    <div
+                      key={dayIdx}
+                      onClick={() => setSelectedDate(date)}
+                      className={`min-h-[120px] p-2 cursor-pointer transition-colors ${
+                        !isCurrentMonth
+                          ? "bg-ui-surface-elevated/50"
+                          : "bg-card hover:bg-ui-surface-elevated"
+                      } ${selected ? "ring-2 ring-purple-500" : ""}`}
+                    >
+                      <div className="flex flex-col h-full">
+                        <div
+                          className={`text-sm font-medium mb-1 ${
+                            todayCheck
+                              ? "bg-purple-600 text-white rounded-full w-7 h-7 flex items-center justify-center"
+                              : isCurrentMonth
+                              ? "text-foreground"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {date.getDate()}
+                        </div>
+                        <div className="flex-1 space-y-1 overflow-y-auto">
+                          {dayOperations.slice(0, 3).map((op) => (
+                            <div
+                              key={op.operation.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/operations/${op.operation.id}`);
+                              }}
+                              className="text-xs p-1 rounded bg-primary/10 border border-primary/50 hover:bg-primary/20 transition-colors cursor-pointer"
+                            >
+                              <div className="font-medium text-primary truncate">
+                                {new Date(
+                                  op.operation.scheduledStartDate
+                                ).toLocaleTimeString("es-CL", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </div>
+                              <div className="text-foreground truncate">
+                                {op.operation.operationNumber}
+                              </div>
+                              <div className="text-muted-foreground truncate">
+                                {op.operation.origin} →{" "}
+                                {op.operation.destination}
+                              </div>
+                            </div>
+                          ))}
+                          {dayOperations.length > 3 && (
+                            <div className="text-xs text-center text-muted-foreground font-medium">
+                              +{dayOperations.length - 3} más
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Selected Date Details */}
+        {selectedDate && (
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className="text-foreground">
+                Operaciones del{" "}
+                {new Intl.DateTimeFormat("es-CL", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                }).format(selectedDate)}
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
+                {getOperationsForDate(selectedDate).length} operación(es)
+                programada(s)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {getOperationsForDate(selectedDate).length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  No hay operaciones programadas para este día
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {getOperationsForDate(selectedDate).map((op) => (
+                    <div
+                      key={op.operation.id}
+                      onClick={() =>
+                        router.push(`/operations/${op.operation.id}`)
+                      }
+                      className="p-4 rounded-lg border border-border hover:bg-ui-surface-elevated cursor-pointer transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge
+                              variant="outline"
+                              className="border-secondary/50 text-secondary"
+                            >
+                              {getOperationTypeLabel(
+                                op.operation.operationType
+                              )}
+                            </Badge>
+                            <span className="font-mono font-medium text-foreground">
+                              {op.operation.operationNumber}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">
+                                Hora:{" "}
+                              </span>
+                              <span className="text-foreground">
+                                {formatDateTime(
+                                  op.operation.scheduledStartDate
+                                )}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">
+                                Cliente:{" "}
+                              </span>
+                              <span className="text-foreground">
+                                {op.client?.businessName || "Sin cliente"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">
+                                Origen:{" "}
+                              </span>
+                              <span className="text-foreground">
+                                {op.operation.origin}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">
+                                Destino:{" "}
+                              </span>
+                              <span className="text-foreground">
+                                {op.operation.destination}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">
+                                Chofer:{" "}
+                              </span>
+                              <span className="text-foreground">
+                                {op.driver.firstName} {op.driver.lastName}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">
+                                Vehículo:{" "}
+                              </span>
+                              <span className="text-foreground">
+                                {op.vehicle.plateNumber}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          {getStatusBadge(op.operation.status)}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditClick(op);
+                            }}
+                            className="text-secondary hover:text-secondary hover:bg-secondary/10"
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Editar
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  };
 
   return (
     <main className="flex-1 overflow-y-auto p-6">
@@ -505,269 +951,267 @@ export default function OperationsPage() {
           </div>
         </div>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-card border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Total Operaciones
-                  </p>
-                  <p className="text-2xl font-bold text-foreground mt-1">
-                    {total}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-secondary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Programadas
-                  </p>
-                  <p className="text-2xl font-bold text-foreground mt-1">
-                    {totalScheduled}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">
-                    En Progreso
-                  </p>
-                  <p className="text-2xl font-bold text-foreground mt-1">
-                    {totalInProgress}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center">
-                  <Truck className="w-6 h-6 text-warning" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Completadas
-                  </p>
-                  <p className="text-2xl font-bold text-foreground mt-1">
-                    {totalCompleted}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-success" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Filters Card */}
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-foreground flex items-center gap-2">
-                <Filter className="w-5 h-5 text-secondary" />
-                Filtros de Búsqueda
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Filtra operaciones según tus criterios
-              </CardDescription>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              className="border-border text-foreground hover:bg-ui-surface-elevated"
-            >
-              {showFilters ? "Ocultar" : "Mostrar"} Filtros
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Search Bar - Always Visible */}
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por número de operación, origen, destino..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                    className="pl-10 bg-ui-surface-elevated border-border text-foreground placeholder-muted-foreground focus:border-purple-500"
-                  />
-                </div>
-                <Button
-                  onClick={handleSearch}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  Buscar
-                </Button>
-              </div>
-
-              {/* Additional Filters */}
-              {showFilters && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-border">
+        {/* Statistics Cards - Only show in list view */}
+        {viewMode === "list" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="bg-card border-border">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                      Estado
-                    </label>
-                    <Select
-                      value={statusFilter}
-                      onValueChange={setStatusFilter}
-                    >
-                      <SelectTrigger className="bg-ui-surface-elevated border-border text-foreground">
-                        <SelectValue placeholder="Estado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos los estados</SelectItem>
-                        {OperationStatuses.map((status) => (
-                          <SelectItem key={status.value} value={status.value}>
-                            {status.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Operaciones Programadas
+                    </p>
+                    <p className="text-2xl font-bold text-foreground mt-1">
+                      {total}
+                    </p>
                   </div>
-
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                      Tipo de Operación
-                    </label>
-                    <Select value={typeFilter} onValueChange={setTypeFilter}>
-                      <SelectTrigger className="bg-ui-surface-elevated border-border text-foreground">
-                        <SelectValue placeholder="Tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos los tipos</SelectItem>
-                        {OperationTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
+                    <Calendar className="w-6 h-6 text-secondary" />
                   </div>
+                </div>
+              </CardContent>
+            </Card>
 
+            <Card className="bg-card border-border">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                      Cliente
-                    </label>
-                    <Select
-                      value={clientFilter}
-                      onValueChange={setClientFilter}
-                    >
-                      <SelectTrigger className="bg-ui-surface-elevated border-border text-foreground">
-                        <SelectValue placeholder="Cliente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos los clientes</SelectItem>
-                        {clients.map((client) => (
-                          <SelectItem
-                            key={client.id}
-                            value={client.id.toString()}
-                          >
-                            {client.businessName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <p className="text-xs font-medium text-muted-foreground">
+                      En Esta Página
+                    </p>
+                    <p className="text-2xl font-bold text-foreground mt-1">
+                      {totalScheduled}
+                    </p>
                   </div>
-
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                      Proveedor
-                    </label>
-                    <Select
-                      value={providerFilter}
-                      onValueChange={setProviderFilter}
-                    >
-                      <SelectTrigger className="bg-ui-surface-elevated border-border text-foreground">
-                        <SelectValue placeholder="Proveedor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">
-                          Todos los proveedores
-                        </SelectItem>
-                        {providers.map((provider) => (
-                          <SelectItem
-                            key={provider.id}
-                            value={provider.id.toString()}
-                          >
-                            {provider.businessName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Clock className="w-6 h-6 text-primary" />
                   </div>
+                </div>
+              </CardContent>
+            </Card>
 
+            <Card className="bg-card border-border">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                      Fecha Inicio
-                    </label>
-                    <Input
-                      type="date"
-                      value={dateRangeFilter.start}
-                      onChange={(e) =>
-                        setDateRangeFilter({
-                          ...dateRangeFilter,
-                          start: e.target.value,
-                        })
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Pendientes de Inicio
+                    </p>
+                    <p className="text-2xl font-bold text-foreground mt-1">
+                      {total}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center">
+                    <Truck className="w-6 h-6 text-warning" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-border">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Próximas 24hrs
+                    </p>
+                    <p className="text-2xl font-bold text-foreground mt-1">
+                      {
+                        operations.filter((op) => {
+                          const startDate = new Date(
+                            op.operation.scheduledStartDate
+                          );
+                          const now = new Date();
+                          const diff = startDate.getTime() - now.getTime();
+                          const hours = diff / (1000 * 60 * 60);
+                          return hours >= 0 && hours <= 24;
+                        }).length
                       }
-                      className="bg-ui-surface-elevated border-border text-foreground"
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center">
+                    <CheckCircle className="w-6 h-6 text-success" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Filters Card - Only show in list view */}
+        {viewMode === "list" && (
+          <Card className="bg-card border-border">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <Filter className="w-5 h-5 text-secondary" />
+                  Filtros de Búsqueda
+                </CardTitle>
+                <CardDescription className="text-muted-foreground">
+                  Filtra operaciones según tus criterios
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className="border-border text-foreground hover:bg-ui-surface-elevated"
+              >
+                {showFilters ? "Ocultar" : "Mostrar"} Filtros
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Search Bar - Always Visible */}
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por número de operación, origen, destino..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                      className="pl-10 bg-ui-surface-elevated border-border text-foreground placeholder-muted-foreground focus:border-purple-500"
                     />
                   </div>
-
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                      Fecha Fin
-                    </label>
-                    <Input
-                      type="date"
-                      value={dateRangeFilter.end}
-                      onChange={(e) =>
-                        setDateRangeFilter({
-                          ...dateRangeFilter,
-                          end: e.target.value,
-                        })
-                      }
-                      className="bg-ui-surface-elevated border-border text-foreground"
-                    />
-                  </div>
+                  <Button
+                    onClick={handleSearch}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    Buscar
+                  </Button>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Operations Table */}
+                {/* Additional Filters - Toggle in list view */}
+                {showFilters && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-border">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                        Tipo de Operación
+                      </label>
+                      <Select value={typeFilter} onValueChange={setTypeFilter}>
+                        <SelectTrigger className="bg-ui-surface-elevated border-border text-foreground">
+                          <SelectValue placeholder="Tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos los tipos</SelectItem>
+                          {OperationTypes.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                        Cliente
+                      </label>
+                      <Select
+                        value={clientFilter}
+                        onValueChange={setClientFilter}
+                      >
+                        <SelectTrigger className="bg-ui-surface-elevated border-border text-foreground">
+                          <SelectValue placeholder="Cliente" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">
+                            Todos los clientes
+                          </SelectItem>
+                          {clients.map((client) => (
+                            <SelectItem
+                              key={client.id}
+                              value={client.id.toString()}
+                            >
+                              {client.businessName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                        Proveedor
+                      </label>
+                      <Select
+                        value={providerFilter}
+                        onValueChange={setProviderFilter}
+                      >
+                        <SelectTrigger className="bg-ui-surface-elevated border-border text-foreground">
+                          <SelectValue placeholder="Proveedor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">
+                            Todos los proveedores
+                          </SelectItem>
+                          {providers.map((provider) => (
+                            <SelectItem
+                              key={provider.id}
+                              value={provider.id.toString()}
+                            >
+                              {provider.businessName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                        Fecha Inicio
+                      </label>
+                      <Input
+                        type="date"
+                        value={dateRangeFilter.start}
+                        onChange={(e) =>
+                          setDateRangeFilter({
+                            ...dateRangeFilter,
+                            start: e.target.value,
+                          })
+                        }
+                        className="bg-ui-surface-elevated border-border text-foreground"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                        Fecha Fin
+                      </label>
+                      <Input
+                        type="date"
+                        value={dateRangeFilter.end}
+                        onChange={(e) =>
+                          setDateRangeFilter({
+                            ...dateRangeFilter,
+                            end: e.target.value,
+                          })
+                        }
+                        className="bg-ui-surface-elevated border-border text-foreground"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Operations Table or Calendar */}
         <Card className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-foreground flex items-center gap-2">
                 <Package className="w-5 h-5 text-secondary" />
-                Listado de Operaciones
+                {viewMode === "list"
+                  ? "Listado de Operaciones"
+                  : "Calendario de Operaciones"}
               </CardTitle>
               <CardDescription className="text-muted-foreground">
-                Total de {total} operaciones registradas
+                {viewMode === "list"
+                  ? `Total de ${total} operaciones registradas`
+                  : "Vista mensual de operaciones programadas"}
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -797,6 +1241,8 @@ export default function OperationsPage() {
                 <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
                 <p className="text-destructive">{error}</p>
               </div>
+            ) : viewMode === "calendar" ? (
+              renderCalendarView()
             ) : operations.length === 0 ? (
               <div className="text-center py-12">
                 <Calendar className="w-12 h-12 text-slate-600 mx-auto mb-4" />
