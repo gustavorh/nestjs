@@ -23,9 +23,7 @@ interface RequestWithUser {
     id: number;
     roleId: number;
     operatorId: number;
-    operator?: {
-      super: boolean;
-    };
+    isSuper: boolean;
   };
 }
 
@@ -56,7 +54,7 @@ export class PermissionsGuard implements CanActivate {
     }
 
     // Super operators bypass all permission checks
-    if (user.operator?.super) {
+    if (user.isSuper) {
       return true;
     }
 

@@ -589,6 +589,208 @@ export async function deleteOperation(
 }
 
 // ============================================================================
+// CLIENTS API
+// ============================================================================
+
+import type {
+  Client,
+  CreateClientInput,
+  UpdateClientInput,
+  ClientQueryParams,
+  PaginatedClients,
+  ClientStatistics,
+  ClientOperationsQueryParams,
+  PaginatedClientOperations,
+  IndustryAnalytics,
+  TopClient,
+} from "@/types/clients";
+
+/**
+ * Get all clients with filtering and pagination
+ */
+export async function getClients(
+  token: string,
+  params?: ClientQueryParams
+): Promise<PaginatedClients> {
+  const queryParams = new URLSearchParams();
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, value.toString());
+      }
+    });
+  }
+  const queryString = queryParams.toString();
+  return authenticatedRequest<PaginatedClients>(
+    `/api/clients${queryString ? `?${queryString}` : ""}`,
+    token
+  );
+}
+
+/**
+ * Get a single client by ID
+ */
+export async function getClientById(
+  token: string,
+  id: number
+): Promise<Client> {
+  return authenticatedRequest<Client>(`/api/clients/${id}`, token);
+}
+
+/**
+ * Create a new client
+ */
+export async function createClient(
+  token: string,
+  data: CreateClientInput
+): Promise<Client> {
+  return authenticatedRequest<Client>("/api/clients", token, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Update an existing client
+ */
+export async function updateClient(
+  token: string,
+  id: number,
+  data: UpdateClientInput
+): Promise<Client> {
+  return authenticatedRequest<Client>(`/api/clients/${id}`, token, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Delete a client (soft delete)
+ */
+export async function deleteClient(
+  token: string,
+  id: number
+): Promise<{ message: string }> {
+  return authenticatedRequest<{ message: string }>(
+    `/api/clients/${id}`,
+    token,
+    {
+      method: "DELETE",
+    }
+  );
+}
+
+/**
+ * Permanently delete a client
+ */
+export async function permanentlyDeleteClient(
+  token: string,
+  id: number
+): Promise<{ message: string }> {
+  return authenticatedRequest<{ message: string }>(
+    `/api/clients/${id}/permanent`,
+    token,
+    {
+      method: "DELETE",
+    }
+  );
+}
+
+/**
+ * Get client operations
+ */
+export async function getClientOperations(
+  token: string,
+  clientId: number,
+  params?: ClientOperationsQueryParams
+): Promise<PaginatedClientOperations> {
+  const queryParams = new URLSearchParams();
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, value.toString());
+      }
+    });
+  }
+  const queryString = queryParams.toString();
+  return authenticatedRequest<PaginatedClientOperations>(
+    `/api/clients/${clientId}/operations${
+      queryString ? `?${queryString}` : ""
+    }`,
+    token
+  );
+}
+
+/**
+ * Get client statistics
+ */
+export async function getClientStatistics(
+  token: string,
+  clientId: number
+): Promise<ClientStatistics> {
+  return authenticatedRequest<ClientStatistics>(
+    `/api/clients/${clientId}/statistics`,
+    token
+  );
+}
+
+/**
+ * Get recent client operations
+ */
+export async function getRecentClientOperations(
+  token: string,
+  clientId: number,
+  limit?: number
+): Promise<PaginatedClientOperations> {
+  return authenticatedRequest<PaginatedClientOperations>(
+    `/api/clients/${clientId}/recent-operations${
+      limit ? `?limit=${limit}` : ""
+    }`,
+    token
+  );
+}
+
+/**
+ * Get clients by industry analytics
+ */
+export async function getClientsByIndustry(
+  token: string,
+  operatorId?: number
+): Promise<IndustryAnalytics[]> {
+  const queryParams = new URLSearchParams();
+  if (operatorId) {
+    queryParams.append("operatorId", operatorId.toString());
+  }
+  const queryString = queryParams.toString();
+  return authenticatedRequest<IndustryAnalytics[]>(
+    `/api/clients/analytics/by-industry${queryString ? `?${queryString}` : ""}`,
+    token
+  );
+}
+
+/**
+ * Get top clients by operations
+ */
+export async function getTopClientsByOperations(
+  token: string,
+  operatorId?: number,
+  limit?: number
+): Promise<TopClient[]> {
+  const queryParams = new URLSearchParams();
+  if (operatorId) {
+    queryParams.append("operatorId", operatorId.toString());
+  }
+  if (limit) {
+    queryParams.append("limit", limit.toString());
+  }
+  const queryString = queryParams.toString();
+  return authenticatedRequest<TopClient[]>(
+    `/api/clients/analytics/top-clients${queryString ? `?${queryString}` : ""}`,
+    token
+  );
+}
+
+// ============================================================================
 // TRUCKS API
 // ============================================================================
 
