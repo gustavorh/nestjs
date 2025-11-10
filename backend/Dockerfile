@@ -23,8 +23,8 @@ COPY drizzle ./drizzle
 # Build the application
 RUN npm run build
 
-# Verify dist folder was created
-RUN ls -la dist/
+# Verify dist folder was created and show structure
+RUN ls -la dist/ && echo "=== Dist contents ===" && find dist -type f
 
 # Production stage
 FROM node:20-alpine AS production
@@ -48,4 +48,4 @@ COPY --from=builder /app/drizzle ./drizzle
 EXPOSE 3030
 
 # Start the application
-CMD ["npm", "run", "start:prod"]
+CMD ["node", "dist/main.js"]
