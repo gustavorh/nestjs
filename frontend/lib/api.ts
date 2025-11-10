@@ -603,6 +603,41 @@ export async function deleteOperation(
 }
 
 /**
+ * Generate PDF report for an operation
+ */
+export async function generateOperationReport(
+  token: string,
+  id: number,
+  options?: {
+    includePhotos?: boolean;
+    includeTimeline?: boolean;
+    includeIncidents?: boolean;
+    language?: "es" | "en";
+  }
+): Promise<Blob> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/operations/${id}/generate-report`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(options || {}),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response
+      .json()
+      .catch(() => ({ message: "Error generating report" }));
+    throw new Error(error.message || "Error generating PDF report");
+  }
+
+  return response.blob();
+}
+
+/**
  * Get operation statistics
  */
 export async function getOperationStatistics(

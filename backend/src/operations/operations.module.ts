@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { OperationsController } from './operations.controller';
 import { OperationsService } from './operations.service';
+import { PdfService } from './pdf.service';
 import { DatabaseModule } from '../database/database.module';
 
 @Module({
   imports: [DatabaseModule],
   controllers: [OperationsController],
-  providers: [OperationsService],
+  providers: [OperationsService, PdfService],
   exports: [OperationsService],
 })
 export class OperationsModule {}

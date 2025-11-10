@@ -242,3 +242,23 @@ export class UnassignDriverFromVehicleDto {
   @MaxLength(500)
   notes?: string;
 }
+
+// ============================================================================
+// PDF REPORT DTOs
+// ============================================================================
+
+export class GenerateReportDto {
+  @IsOptional()
+  includePhotos?: boolean = true;
+
+  @IsOptional()
+  includeTimeline?: boolean = true;
+
+  @IsOptional()
+  includeIncidents?: boolean = true;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['es', 'en'])
+  language?: string = 'es';
+}

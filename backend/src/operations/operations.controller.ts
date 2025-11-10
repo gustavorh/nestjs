@@ -10,7 +10,10 @@ import {
   UseGuards,
   Request,
   ParseIntPipe,
+  Res,
+  HttpStatus,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { OperationsService } from './operations.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -21,6 +24,7 @@ import {
   OperationQueryDto,
   AssignDriverToVehicleDto,
   UnassignDriverFromVehicleDto,
+  GenerateReportDto,
 } from './dto/operation.dto';
 
 interface RequestWithUser extends Request {
@@ -150,5 +154,33 @@ export class OperationsController {
   @RequirePermission('operations', 'read')
   async getDriverStatistics(@Param('driverId', ParseIntPipe) driverId: number) {
     return this.operationsService.getDriverStatistics(driverId);
+  }
+
+  // ============================================================================
+  // PDF REPORT GENERATION ENDPOINT
+  // ============================================================================
+
+  @Post(':id/generate-report')
+  @RequirePermission('operations', 'read')
+  async generateOperationReport(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() options: GenerateReportDto,
+    @Res() res: Response,
+  ) {
+    const pdfBuffer = await this.operationsService.generateOperationReport(
+      id,
+      options,
+    );
+
+    const operation = await this.operationsService.getOperationById(id);
+    const filename = `operacion-${operation.operation.operationNumber}.pdf`;
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': pdfBuffer.length,
+    });
+
+    res.status(HttpStatus.OK).send(pdfBuffer);
   }
 }

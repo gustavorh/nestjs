@@ -16,13 +16,16 @@ import {
   OperationQueryDto,
   AssignDriverToVehicleDto,
   UnassignDriverFromVehicleDto,
+  GenerateReportDto,
 } from './dto/operation.dto';
+import { PdfService } from './pdf.service';
 
 @Injectable()
 export class OperationsService {
   constructor(
     @Inject(DATABASE)
     private db: MySql2Database<typeof schema>,
+    private pdfService: PdfService,
   ) {}
 
   // ============================================================================
@@ -630,5 +633,112 @@ export class OperationsService {
       .where(eq(schema.operations.driverId, driverId));
 
     return stats;
+  }
+
+  // ============================================================================
+  // PDF REPORT GENERATION
+  // ============================================================================
+
+  async generateOperationReport(
+    id: number,
+    options: GenerateReportDto = {},
+  ): Promise<Buffer> {
+    // Get full operation data
+    const operationData = await this.getOperationById(id);
+
+    if (!operationData.operation) {
+      throw new NotFoundException(`Operation with ID ${id} not found`);
+    }
+
+    if (!operationData.driver) {
+      throw new NotFoundException(
+        `Driver information not found for operation ${id}`,
+      );
+    }
+
+    if (!operationData.vehicle) {
+      throw new NotFoundException(
+        `Vehicle information not found for operation ${id}`,
+      );
+    }
+
+    // Get operator information
+    const [operator] = await this.db
+      .select()
+      .from(schema.operators)
+      .where(eq(schema.operators.id, operationData.operation.operatorId))
+      .limit(1);
+
+    if (!operator) {
+      throw new NotFoundException(
+        `Operator with ID ${operationData.operation.operatorId} not found`,
+      );
+    }
+
+    // Get route information if exists
+    let routeInfo: { name: string; distance?: number } | undefined = undefined;
+    if (operationData.operation.routeId) {
+      const [routeData] = await this.db
+        .select()
+        .from(schema.routes)
+        .where(eq(schema.routes.id, operationData.operation.routeId))
+        .limit(1);
+      if (routeData) {
+        routeInfo = {
+          name: routeData.name,
+          distance: routeData.distance ?? undefined,
+        };
+      }
+    }
+
+    // Prepare data for PDF generation (convert dates to strings)
+    const pdfData = {
+      operation: {
+        ...operationData.operation,
+        scheduledStartDate:
+          operationData.operation.scheduledStartDate.toISOString(),
+        scheduledEndDate:
+          operationData.operation.scheduledEndDate?.toISOString(),
+        actualStartDate: operationData.operation.actualStartDate?.toISOString(),
+        actualEndDate: operationData.operation.actualEndDate?.toISOString(),
+        distance: operationData.operation.distance ?? undefined,
+        cargoDescription: operationData.operation.cargoDescription ?? undefined,
+        cargoWeight: operationData.operation.cargoWeight ?? undefined,
+        notes: operationData.operation.notes ?? undefined,
+      },
+      client: operationData.client
+        ? {
+            businessName: operationData.client.businessName,
+            contactName: operationData.client.contactName ?? undefined,
+            contactPhone: operationData.client.contactPhone ?? undefined,
+          }
+        : undefined,
+      provider: operationData.provider
+        ? {
+            businessName: operationData.provider.businessName,
+            contactName: operationData.provider.contactName ?? undefined,
+            contactPhone: operationData.provider.contactPhone ?? undefined,
+          }
+        : undefined,
+      driver: {
+        firstName: operationData.driver.firstName,
+        lastName: operationData.driver.lastName,
+        phone: operationData.driver.phone ?? undefined,
+        licenseType: operationData.driver.licenseType,
+      },
+      vehicle: {
+        plateNumber: operationData.vehicle.plateNumber,
+        brand: operationData.vehicle.brand ?? undefined,
+        model: operationData.vehicle.model ?? undefined,
+        vehicleType: operationData.vehicle.vehicleType,
+      },
+      route: routeInfo,
+      operator: {
+        businessName: operator.name,
+      },
+    };
+
+    // Generate PDF
+    return this.pdfService.generateOperationReport(pdfData, options);
   }
 }

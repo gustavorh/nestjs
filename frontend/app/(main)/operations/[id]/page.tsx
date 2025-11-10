@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { getToken, isAuthenticated } from "@/lib/auth";
-import { getOperationById } from "@/lib/api";
+import { getOperationById, generateOperationReport } from "@/lib/api";
 import type { OperationWithDetails } from "@/types/operations";
 import type {
   OperationTrackingData,
@@ -236,11 +236,49 @@ export default function OperationDetailPage() {
   };
 
   const handleGenerateReport = async () => {
-    // TODO: Implement PDF report generation
-    console.log(
-      "Generating PDF report for operation:",
-      operation?.operation.id
-    );
+    if (!operation) return;
+
+    try {
+      const token = getToken();
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      // Show loading state (you could add a loading state if desired)
+      console.log(
+        "Generating PDF report for operation:",
+        operation.operation.id
+      );
+
+      // Call the API to generate the PDF
+      const pdfBlob = await generateOperationReport(
+        token,
+        operation.operation.id,
+        {
+          includePhotos: true,
+          includeTimeline: true,
+          includeIncidents: true,
+          language: "es",
+        }
+      );
+
+      // Create a download link and trigger download
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `operacion-${operation.operation.operationNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error generating PDF report:", error);
+      // You could add a toast notification here to show the error to the user
+      alert("Error al generar el informe PDF. Por favor, intente nuevamente.");
+    }
   };
 
   if (!mounted) {
