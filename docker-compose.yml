@@ -62,6 +62,15 @@ services:
         condition: service_healthy
     networks:
       - rutalink-network
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.rutalink-backend.rule=Host(`api-rutalink.gustavorh.com`)"
+      - "traefik.http.routers.rutalink-backend.entrypoints=https"
+      - "traefik.http.routers.rutalink-backend.tls=true"
+      - "traefik.http.routers.rutalink-backend.tls.certresolver=cloudflare"
+      - "traefik.http.services.rutalink-backend.loadbalancer.server.port=3030"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3030/api"]
       interval: 30s
@@ -94,7 +103,7 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
       - "traefik.http.routers.rutalink-frontend.rule=Host(`rutalink.gustavorh.com`)"
-      - "traefik.http.routers.rutalink-frontend.entrypoints=websecure"
+      - "traefik.http.routers.rutalink-frontend.entrypoints=https"
       - "traefik.http.routers.rutalink-frontend.tls=true"
       - "traefik.http.routers.rutalink-frontend.tls.certresolver=cloudflare"
       - "traefik.http.services.rutalink-frontend.loadbalancer.server.port=3000"
